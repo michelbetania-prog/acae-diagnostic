@@ -1,5 +1,17 @@
+"use client";
+
 import Link from "next/link";
-import { calculateACAE } from "@/lib/calculateACAE";
+import { useEffect, useState } from "react";
+import {
+  GrowthState,
+  canRunDiagnostic,
+  getAllTasks,
+  getDefaultGrowthState,
+  getGrowthState,
+  getLatestDiagnostic,
+  getSessionsAvailable,
+  getTaskProgress
+} from "@/lib/growthSystem";
 
 const navItems = [
   { label: "Dashboard", href: "/dashboard" },
@@ -11,13 +23,20 @@ const navItems = [
   { label: "Cuenta", href: "/account" }
 ];
 
-const sampleAnswers: Record<number, number> = {
-  1: 4, 2: 3, 3: 4, 4: 3, 5: 4, 6: 3, 7: 4, 8: 4, 9: 3, 10: 3, 11: 2, 12: 3
-};
-
 export default function DashboardPage() {
-  const score = calculateACAE(sampleAnswers);
-  const growthPercent = Math.round((score.total / 60) * 100);
+  const [state, setState] = useState<GrowthState>(getDefaultGrowthState());
+
+  useEffect(() => {
+    setState(getGrowthState());
+  }, []);
+
+  const latest = getLatestDiagnostic(state);
+  const growthPercent = latest ? Math.round((latest.score.total / 60) * 100) : 0;
+  const tasks = getAllTasks(state);
+  const taskProgress = getTaskProgress(state);
+  const activeTasks = tasks.filter((task) => task.status === "pending").length;
+  const diagnosticPermission = canRunDiagnostic(state);
+  const sessions = getSessionsAvailable(state.plan);
 
   return (
     <main className="min-h-[calc(100vh-64px)] bg-slate-50">
@@ -44,7 +63,7 @@ export default function DashboardPage() {
         <section className="space-y-6">
           <header className="rounded-2xl border border-slate-200 bg-white p-6 shadow-soft">
             <h1 className="text-2xl font-bold text-slate-900 md:text-3xl">Dashboard Principal</h1>
-            <p className="mt-2 text-slate-600">Resumen ejecutivo de tu desempeño estratégico con el método ACAE.</p>
+            <p className="mt-2 text-slate-600">Plan actual: {state.plan.toUpperCase()}.</p>
           </header>
 
           <article className="rounded-2xl border border-slate-200 bg-white p-6 shadow-soft">
@@ -63,33 +82,37 @@ export default function DashboardPage() {
             </div>
 
             <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-              <div className="rounded-lg bg-slate-100 p-3 text-sm text-slate-700">Atracción: {score.atraccion}/15</div>
-              <div className="rounded-lg bg-slate-100 p-3 text-sm text-slate-700">Conversión: {score.conversion}/15</div>
-              <div className="rounded-lg bg-slate-100 p-3 text-sm text-slate-700">Autoridad: {score.autoridad}/15</div>
-              <div className="rounded-lg bg-slate-100 p-3 text-sm text-slate-700">Escalabilidad: {score.escalabilidad}/15</div>
+              <div className="rounded-lg bg-slate-100 p-3 text-sm text-slate-700">Atracción: {latest?.score.atraccion ?? 0}/15</div>
+              <div className="rounded-lg bg-slate-100 p-3 text-sm text-slate-700">Conversión: {latest?.score.conversion ?? 0}/15</div>
+              <div className="rounded-lg bg-slate-100 p-3 text-sm text-slate-700">Autoridad: {latest?.score.autoridad ?? 0}/15</div>
+              <div className="rounded-lg bg-slate-100 p-3 text-sm text-slate-700">Escalabilidad: {latest?.score.escalabilidad ?? 0}/15</div>
             </div>
           </article>
 
           <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
             <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-soft">
               <p className="text-sm text-slate-500">Progreso de tareas</p>
-              <p className="mt-2 text-2xl font-bold text-slate-900">72%</p>
-              <p className="mt-1 text-sm text-slate-600">9 de 12 tareas completadas</p>
+              <p className="mt-2 text-2xl font-bold text-slate-900">{taskProgress}%</p>
+              <p className="mt-1 text-sm text-slate-600">Tareas completadas sobre total</p>
             </article>
             <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-soft">
               <p className="text-sm text-slate-500">Tareas activas</p>
-              <p className="mt-2 text-2xl font-bold text-slate-900">3</p>
-              <p className="mt-1 text-sm text-slate-600">2 de prioridad alta</p>
+              <p className="mt-2 text-2xl font-bold text-slate-900">{activeTasks}</p>
+              <p className="mt-1 text-sm text-slate-600">Pendientes del plan actual</p>
             </article>
             <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-soft">
               <p className="text-sm text-slate-500">Próximo diagnóstico</p>
-              <p className="mt-2 text-2xl font-bold text-slate-900">5 días</p>
-              <p className="mt-1 text-sm text-slate-600">Disponible el lunes</p>
+              <p className="mt-2 text-2xl font-bold text-slate-900">
+                {diagnosticPermission.allowed
+                  ? "Disponible"
+                  : diagnosticPermission.nextDate?.toLocaleDateString("es-ES") ?? "Sin fecha"}
+              </p>
+              <p className="mt-1 text-sm text-slate-600">Restantes en plan: {diagnosticPermission.remaining}</p>
             </article>
             <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-soft">
               <p className="text-sm text-slate-500">Sesiones estratégicas</p>
-              <p className="mt-2 text-2xl font-bold text-slate-900">2</p>
-              <p className="mt-1 text-sm text-slate-600">Disponibles este mes</p>
+              <p className="mt-2 text-2xl font-bold text-slate-900">{sessions}</p>
+              <p className="mt-1 text-sm text-slate-600">Disponibles según tu plan</p>
             </article>
           </section>
         </section>

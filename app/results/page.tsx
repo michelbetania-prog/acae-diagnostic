@@ -6,7 +6,8 @@ import { Container } from "@/components/Container";
 import { RadarChart } from "@/components/RadarChart";
 import { RecommendationBox } from "@/components/RecommendationBox";
 import { ResultSummary } from "@/components/ResultSummary";
-import { calculateACAE } from "@/lib/calculateACAE";
+import { ACAEScore } from "@/lib/calculateACAE";
+import { getGrowthState, getLatestDiagnostic } from "@/lib/growthSystem";
 
 function getInterpretation(total: number) {
   if (total <= 20) return "Negocio invisible";
@@ -16,25 +17,15 @@ function getInterpretation(total: number) {
 }
 
 export default function ResultsPage() {
-  const [parsed, setParsed] = useState<Record<number, number> | null>(null);
+  const [scores, setScores] = useState<ACAEScore | null>(null);
 
   useEffect(() => {
-    const raw = localStorage.getItem("acae_answers");
-    if (!raw) return;
-
-    try {
-      const data = JSON.parse(raw) as Record<string, number>;
-      const normalized = Object.entries(data).reduce<Record<number, number>>((acc, [k, v]) => {
-        acc[Number(k)] = Number(v);
-        return acc;
-      }, {});
-      setParsed(normalized);
-    } catch {
-      setParsed(null);
-    }
+    const state = getGrowthState();
+    const latest = getLatestDiagnostic(state);
+    setScores(latest?.score ?? null);
   }, []);
 
-  if (!parsed) {
+  if (!scores) {
     return (
       <main className="py-14">
         <Container className="rounded-xl border border-slate-200 bg-white p-8 text-center shadow-soft">
@@ -48,7 +39,6 @@ export default function ResultsPage() {
     );
   }
 
-  const scores = calculateACAE(parsed);
   const interpretation = getInterpretation(scores.total);
 
   return (
