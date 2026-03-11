@@ -1,5 +1,11 @@
 import { ACAEScore, calculateACAE } from "@/lib/calculateACAE";
-import { getRecommendations } from "@/lib/recommendations";
+import {
+  ActionPlan,
+  BusinessDimension,
+  BusinessStage,
+  DiagnosticResult as MatrixDiagnosticResult,
+  generateActionPlan
+} from "@/lib/acaeMatrix";
 
 export type PlanType = "free" | "standard" | "pro";
 export type TaskStatus = "pending" | "completed";
@@ -21,6 +27,9 @@ export type DiagnosticResult = {
   weakestDimension: string;
   plan: string[];
   tasks: ActionTask[];
+  businessStage: BusinessStage;
+  priorities: BusinessDimension[];
+  strategicFocus: string;
 };
 
 export type GrowthState = {
@@ -43,18 +52,35 @@ const sessionsByPlan: Record<PlanType, number> = {
   pro: 2
 };
 
+const dimensionLabels: Record<BusinessDimension, string> = {
+  attraction: "Atracción",
+  conversion: "Conversión",
+  automation: "Automatización",
+  scale: "Escala"
+};
+
 function plusDays(days: number) {
   const d = new Date();
   d.setDate(d.getDate() + days);
   return d.toISOString();
 }
 
-function createTasks(dimension: string, items: string[]): ActionTask[] {
-  return items.map((item, idx) => ({
+function scoreToMatrixResult(score: ACAEScore): MatrixDiagnosticResult {
+  return {
+    attraction: score.atraccion,
+    conversion: score.conversion,
+    automation: score.autoridad,
+    scale: score.escalabilidad,
+    total: score.total
+  };
+}
+
+function createTasksFromPlan(plan: ActionPlan): ActionTask[] {
+  return plan.tasks.map((item, idx) => ({
     id: `task-${Date.now()}-${idx}`,
-    title: item,
-    description: `Acción recomendada para fortalecer ${dimension.toLowerCase()}.`,
-    dimension,
+    title: item.title,
+    description: item.description,
+    dimension: dimensionLabels[item.dimension],
     status: "pending",
     due_date: plusDays((idx + 1) * 7)
   }));
@@ -122,17 +148,21 @@ export function runDiagnostic(answers: Record<number, number>) {
   }
 
   const score = calculateACAE(answers);
-  const rec = getRecommendations(score);
-  const tasks = createTasks(rec.dimension, rec.items);
+  const matrixResult = scoreToMatrixResult(score);
+  const actionPlan = generateActionPlan(matrixResult);
+  const tasks = createTasksFromPlan(actionPlan);
 
   const created: DiagnosticResult = {
     id: `diag-${Date.now()}`,
     createdAt: new Date().toISOString(),
     answers,
     score,
-    weakestDimension: rec.dimension,
-    plan: rec.items,
-    tasks
+    weakestDimension: dimensionLabels[actionPlan.priorities[0]],
+    plan: actionPlan.tasks.map((task) => task.title),
+    tasks,
+    businessStage: actionPlan.businessStage,
+    priorities: actionPlan.priorities,
+    strategicFocus: actionPlan.strategicFocus
   };
 
   const next: GrowthState = {
