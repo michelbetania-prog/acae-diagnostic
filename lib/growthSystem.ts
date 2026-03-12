@@ -1,36 +1,12 @@
 import { ACAEScore, calculateACAE } from "@/lib/calculateACAE";
-import {
-  ActionPlan,
-  BusinessStage,
-  generateActionPlan
-} from "@/lib/actionPlanEngine";
+import { ActionPlanBase, DiagnosticRecord, Task, TaskStatus } from "@/lib/types";
+import { generateActionPlan } from "@/lib/actionPlanEngine";
 import { processDiagnosticAnswers } from "@/lib/diagnosticEngine";
 import { calculateBusinessProgress, getTaskProgress as getTaskProgressFromEngine } from "@/lib/progressEngine";
 
 export type PlanType = "free" | "standard" | "pro";
-export type TaskStatus = "pending" | "completed";
-
-export type ActionTask = {
-  id: string;
-  title: string;
-  description: string;
-  dimension: string;
-  status: TaskStatus;
-  due_date: string;
-};
-
-export type DiagnosticResult = {
-  id: string;
-  createdAt: string;
-  answers: Record<number, number>;
-  score: ACAEScore;
-  weakestDimension: string;
-  plan: string[];
-  tasks: ActionTask[];
-  businessStage: BusinessStage;
-  priorities: ActionPlan["priorities"];
-  strategicFocus: string;
-};
+export type ActionTask = Task;
+export type DiagnosticResult = DiagnosticRecord;
 
 export type GrowthState = {
   plan: PlanType;
@@ -52,7 +28,7 @@ const sessionsByPlan: Record<PlanType, number> = {
   pro: 2
 };
 
-const dimensionLabels: Record<ActionPlan["priorities"][number], string> = {
+const dimensionLabels: Record<ActionPlanBase["priorities"][number], string> = {
   attraction: "Atracción",
   conversion: "Conversión",
   automation: "Automatización",
@@ -65,7 +41,7 @@ function plusDays(days: number) {
   return d.toISOString();
 }
 
-function createTasksFromActionPlan(actionPlan: ActionPlan): ActionTask[] {
+function createTasksFromActionPlan(actionPlan: ActionPlanBase): ActionTask[] {
   return actionPlan.tasks.map((task, idx) => ({
     id: `task-${Date.now()}-${idx}`,
     title: task.title,
@@ -137,7 +113,7 @@ export function runDiagnostic(answers: Record<number, number>) {
     return { state, created: null, permission };
   }
 
-  const score = calculateACAE(answers);
+  const score: ACAEScore = calculateACAE(answers);
   const matrixInput = processDiagnosticAnswers(answers);
   const actionPlan = generateActionPlan(matrixInput);
   const tasks = createTasksFromActionPlan(actionPlan);

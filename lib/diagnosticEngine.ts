@@ -1,11 +1,5 @@
 import { diagnosticQuestions } from "@/lib/diagnosticQuestions";
-
-export type DiagnosticResult = {
-  attractionScore: number;
-  conversionScore: number;
-  automationScore: number;
-  scaleScore: number;
-};
+import { DiagnosticDimensionScores } from "@/lib/types";
 
 function normalizeAnswer(value: number | undefined): number {
   if (typeof value !== "number" || Number.isNaN(value)) return 0;
@@ -14,8 +8,8 @@ function normalizeAnswer(value: number | undefined): number {
   return Math.round(value);
 }
 
-export function calculateDimensionScores(answers: Record<number, number>): DiagnosticResult {
-  const base: DiagnosticResult = {
+export function calculateDimensionScores(answers: Record<number, number>): DiagnosticDimensionScores {
+  const base: DiagnosticDimensionScores = {
     attractionScore: 0,
     conversionScore: 0,
     automationScore: 0,
@@ -34,6 +28,6 @@ export function calculateDimensionScores(answers: Record<number, number>): Diagn
   return base;
 }
 
-export function processDiagnosticAnswers(answers: Record<number, number>): DiagnosticResult {
+export function processDiagnosticAnswers(answers: Record<number, number>): DiagnosticDimensionScores {
   return calculateDimensionScores(answers);
 }

@@ -1,19 +1,5 @@
 import { ACAE_MATRIX, BusinessDimension, MatrixLevel } from "@/lib/acaeMatrix";
-import { DiagnosticResult } from "@/lib/diagnosticEngine";
-
-export type BusinessStage = "IDEA" | "VALIDATION" | "GROWTH" | "SYSTEMIZATION" | "SCALE";
-
-export type GeneratedTask = {
-  title: string;
-  dimension: BusinessDimension;
-};
-
-export type ActionPlan = {
-  priorities: BusinessDimension[];
-  tasks: GeneratedTask[];
-  strategicFocus: string;
-  businessStage: BusinessStage;
-};
+import { ActionPlanAdvanced, ActionPlanBase, DiagnosticDimensionScores } from "@/lib/types";
 
 function scoreToLevel(score: number): MatrixLevel {
   if (score <= 3) return 1;
@@ -23,7 +9,7 @@ function scoreToLevel(score: number): MatrixLevel {
   return 5;
 }
 
-function getDimensionLevels(result: DiagnosticResult): Record<BusinessDimension, MatrixLevel> {
+function getDimensionLevels(result: DiagnosticDimensionScores): Record<BusinessDimension, MatrixLevel> {
   return {
     attraction: scoreToLevel(result.attractionScore),
     conversion: scoreToLevel(result.conversionScore),
@@ -32,7 +18,7 @@ function getDimensionLevels(result: DiagnosticResult): Record<BusinessDimension,
   };
 }
 
-function getDimensionScores(result: DiagnosticResult): Record<BusinessDimension, number> {
+function getDimensionScores(result: DiagnosticDimensionScores): Record<BusinessDimension, number> {
   return {
     attraction: result.attractionScore,
     conversion: result.conversionScore,
@@ -41,7 +27,7 @@ function getDimensionScores(result: DiagnosticResult): Record<BusinessDimension,
   };
 }
 
-function getPriorities(result: DiagnosticResult): BusinessDimension[] {
+function getPriorities(result: DiagnosticDimensionScores): BusinessDimension[] {
   const levels = getDimensionLevels(result);
   const scores = getDimensionScores(result);
 
@@ -51,7 +37,7 @@ function getPriorities(result: DiagnosticResult): BusinessDimension[] {
   });
 }
 
-export function calculateBusinessStage(result: DiagnosticResult): BusinessStage {
+export function calculateBusinessStage(result: DiagnosticDimensionScores): ActionPlanBase["businessStage"] {
   const levels = Object.values(getDimensionLevels(result));
   const avg = levels.reduce((acc, level) => acc + level, 0) / levels.length;
 
@@ -62,14 +48,14 @@ export function calculateBusinessStage(result: DiagnosticResult): BusinessStage 
   return "SCALE";
 }
 
-export function getStrategicFocus(result: DiagnosticResult): string {
+export function getStrategicFocus(result: DiagnosticDimensionScores): string {
   const priorities = getPriorities(result);
   const primary = priorities[0];
   const level = getDimensionLevels(result)[primary];
   return ACAE_MATRIX[primary][level].focus;
 }
 
-export function generateTasksFromDiagnostic(result: DiagnosticResult): GeneratedTask[] {
+export function generateTasksFromDiagnostic(result: DiagnosticDimensionScores): ActionPlanBase["tasks"] {
   const priorities = getPriorities(result).slice(0, 2);
   const levels = getDimensionLevels(result);
 
@@ -82,11 +68,26 @@ export function generateTasksFromDiagnostic(result: DiagnosticResult): Generated
   });
 }
 
-export function generateActionPlan(result: DiagnosticResult): ActionPlan {
+export function generateActionPlan(result: DiagnosticDimensionScores): ActionPlanBase {
   return {
     priorities: getPriorities(result),
     tasks: generateTasksFromDiagnostic(result),
     strategicFocus: getStrategicFocus(result),
     businessStage: calculateBusinessStage(result)
+  };
+}
+
+export function generateAdvancedActionPlan(result: DiagnosticDimensionScores): ActionPlanAdvanced {
+  const base = generateActionPlan(result);
+  const waves = [
+    { name: "Wave 1", tasks: base.tasks.slice(0, 3) },
+    { name: "Wave 2", tasks: base.tasks.slice(3) }
+  ];
+  return {
+    ...base,
+    waves,
+    criticalPath: base.tasks.slice(0, 3).map((task) => task.title),
+    warnings: base.priorities.length ? [] : ["No priorities detected"],
+    estimatedWeeks: Math.max(base.tasks.length * 2, 2)
   };
 }
