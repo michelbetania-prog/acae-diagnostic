@@ -1,11 +1,11 @@
 import { ACAEScore, calculateACAE } from "@/lib/calculateACAE";
 import {
   ActionPlan,
-  BusinessDimension,
   BusinessStage,
-  DiagnosticResult as MatrixDiagnosticResult,
   generateActionPlan
-} from "@/lib/acaeMatrix";
+} from "@/lib/actionPlanEngine";
+import { processDiagnosticAnswers } from "@/lib/diagnosticEngine";
+import { calculateBusinessProgress, getTaskProgress as getTaskProgressFromEngine } from "@/lib/progressEngine";
 
 export type PlanType = "free" | "standard" | "pro";
 export type TaskStatus = "pending" | "completed";
@@ -28,7 +28,7 @@ export type DiagnosticResult = {
   plan: string[];
   tasks: ActionTask[];
   businessStage: BusinessStage;
-  priorities: BusinessDimension[];
+  priorities: ActionPlan["priorities"];
   strategicFocus: string;
 };
 
@@ -52,7 +52,7 @@ const sessionsByPlan: Record<PlanType, number> = {
   pro: 2
 };
 
-const dimensionLabels: Record<BusinessDimension, string> = {
+const dimensionLabels: Record<ActionPlan["priorities"][number], string> = {
   attraction: "Atracción",
   conversion: "Conversión",
   automation: "Automatización",
@@ -65,22 +65,12 @@ function plusDays(days: number) {
   return d.toISOString();
 }
 
-function scoreToMatrixResult(score: ACAEScore): MatrixDiagnosticResult {
-  return {
-    attraction: score.atraccion,
-    conversion: score.conversion,
-    automation: score.autoridad,
-    scale: score.escalabilidad,
-    total: score.total
-  };
-}
-
-function createTasksFromPlan(plan: ActionPlan): ActionTask[] {
-  return plan.tasks.map((item, idx) => ({
+function createTasksFromActionPlan(actionPlan: ActionPlan): ActionTask[] {
+  return actionPlan.tasks.map((task, idx) => ({
     id: `task-${Date.now()}-${idx}`,
-    title: item.title,
-    description: item.description,
-    dimension: dimensionLabels[item.dimension],
+    title: task.title,
+    description: `Ejecutar acción de ${dimensionLabels[task.dimension].toLowerCase()} para mejorar el negocio.`,
+    dimension: dimensionLabels[task.dimension],
     status: "pending",
     due_date: plusDays((idx + 1) * 7)
   }));
@@ -148,9 +138,9 @@ export function runDiagnostic(answers: Record<number, number>) {
   }
 
   const score = calculateACAE(answers);
-  const matrixResult = scoreToMatrixResult(score);
-  const actionPlan = generateActionPlan(matrixResult);
-  const tasks = createTasksFromPlan(actionPlan);
+  const matrixInput = processDiagnosticAnswers(answers);
+  const actionPlan = generateActionPlan(matrixInput);
+  const tasks = createTasksFromActionPlan(actionPlan);
 
   const created: DiagnosticResult = {
     id: `diag-${Date.now()}`,
@@ -196,10 +186,7 @@ export function toggleTask(taskId: string, done: boolean) {
 }
 
 export function getTaskProgress(state: GrowthState) {
-  const tasks = getAllTasks(state);
-  if (!tasks.length) return 0;
-  const completed = tasks.filter((task) => task.status === "completed").length;
-  return Math.round((completed / tasks.length) * 100);
+  return getTaskProgressFromEngine(getAllTasks(state));
 }
 
 export function getLatestDiagnostic(state: GrowthState): DiagnosticResult | null {
@@ -212,13 +199,15 @@ export function getSessionsAvailable(plan: PlanType) {
 
 export function getProgressComparison(state: GrowthState) {
   if (state.diagnostics.length < 2) return null;
+
+  const progression = calculateBusinessProgress(state.diagnostics);
   const first = state.diagnostics[0].score;
   const latest = state.diagnostics[state.diagnostics.length - 1].score;
 
   return {
-    firstTotal: first.total,
-    latestTotal: latest.total,
-    deltaTotal: latest.total - first.total,
+    firstTotal: progression.firstTotal,
+    latestTotal: progression.latestTotal,
+    deltaTotal: progression.deltaTotal,
     dimensions: {
       atraccion: latest.atraccion - first.atraccion,
       conversion: latest.conversion - first.conversion,

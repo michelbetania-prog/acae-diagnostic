@@ -1,56 +1,55 @@
 # ACAE Growth System
 
-ACAE Growth System es una aplicación SaaS construida con Next.js para diagnosticar negocios y convertir los resultados en un plan de crecimiento automático.
+ACAE Growth System es un SaaS en Next.js que conecta este flujo estratégico:
 
-## ¿Cómo funciona?
+**diagnóstico → matriz ACAE → plan de acción → tareas → progreso**
 
-1. El usuario completa un diagnóstico ACAE (12 preguntas).
-2. El sistema calcula el score por dimensión.
-3. La MATRIZ ACAE interpreta el nivel de madurez del negocio.
-4. Se genera automáticamente:
-   - etapa del negocio,
-   - prioridades estratégicas,
-   - plan de acción,
-   - tareas accionables.
-5. El dashboard muestra progreso, tareas y evolución entre diagnósticos.
+## Componentes del sistema
 
-## Núcleo del sistema
+### 1) Diagnóstico
+- El usuario responde el cuestionario ACAE.
+- El motor procesa respuestas y calcula scores por dimensión.
+- Archivo principal: `lib/diagnosticEngine.ts`.
 
-### Diagnóstico
-Evalúa 4 dimensiones:
-
+### 2) Matriz ACAE
+La matriz estratégica define niveles de madurez (1 a 5) para:
 - Atracción
 - Conversión
-- Autoridad / Automatización
-- Escalabilidad / Escala
+- Automatización
+- Escala
 
-### Matriz ACAE
-La matriz transforma resultados en reglas de decisión por dimensión y nivel (1 a 5):
-
-- problemas típicos,
+Cada nivel define:
 - foco estratégico,
 - tareas sugeridas.
 
 Archivo principal: `lib/acaeMatrix.ts`.
 
-### Plan de acción
-El motor genera un `ActionPlan` con:
-
-- `businessStage` (IDEA, VALIDATION, GROWTH, SYSTEMIZATION, SCALE),
+### 3) Plan de acción automático
+A partir del diagnóstico, el motor genera:
 - prioridades,
 - foco estratégico,
-- tareas para ejecutar.
+- tareas recomendadas,
+- etapa del negocio (`IDEA`, `VALIDATION`, `GROWTH`, `SYSTEMIZATION`, `SCALE`).
 
-### Dashboard
-El panel muestra:
+Archivo principal: `lib/actionPlanEngine.ts`.
 
-- Growth Score,
-- tareas activas y progreso,
-- disponibilidad de nuevos diagnósticos según plan,
-- sesiones disponibles,
-- evolución del score entre diagnósticos.
+### 4) Progreso
+El sistema mide:
+- progreso de tareas completadas,
+- evolución del negocio entre diagnósticos.
 
-## Ejecución local
+Archivo principal: `lib/progressEngine.ts`.
+
+### 5) Integración del sistema
+`lib/growthSystem.ts` integra todos los motores y conserva la API pública para el dashboard:
+- `getDefaultGrowthState`
+- `canRunDiagnostic`
+- `getAllTasks`
+- `getTaskProgress`
+- `getLatestDiagnostic`
+- `getSessionsAvailable`
+
+## Comandos
 
 ```bash
 npm install

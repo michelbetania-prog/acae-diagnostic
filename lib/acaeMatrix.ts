@@ -1,245 +1,139 @@
 export type BusinessDimension = "attraction" | "conversion" | "automation" | "scale";
 
-export type DiagnosticResult = {
-  attraction: number;
-  conversion: number;
-  automation: number;
-  scale: number;
-  total: number;
+export type MatrixLevel = 1 | 2 | 3 | 4 | 5;
+
+export type MatrixNode = {
+  focus: string;
+  tasks: string[];
 };
 
-export type BusinessStage = "IDEA" | "VALIDATION" | "GROWTH" | "SYSTEMIZATION" | "SCALE";
-
-export type Task = {
-  title: string;
-  description: string;
-  dimension: BusinessDimension;
-};
-
-export type MatrixLevelData = {
-  typicalProblems: string[];
-  strategicFocus: string;
-  suggestedTasks: Task[];
-};
-
-export type ActionPlan = {
-  businessStage: BusinessStage;
-  priorities: BusinessDimension[];
-  strategicFocus: string;
-  tasks: Task[];
-};
-
-export const ACAE_MATRIX: Record<BusinessDimension, Record<1 | 2 | 3 | 4 | 5, MatrixLevelData>> = {
+export const ACAE_MATRIX: Record<BusinessDimension, Record<MatrixLevel, MatrixNode>> = {
   attraction: {
     1: {
-      typicalProblems: ["No hay flujo constante de prospectos", "Baja visibilidad en mercado"],
-      strategicFocus: "Diseñar un sistema mínimo de captación.",
-      suggestedTasks: [
-        { title: "Definir oferta de entrada", description: "Crear una oferta clara para captar leads.", dimension: "attraction" },
-        { title: "Canal principal", description: "Elegir un canal de adquisición y publicarlo semanalmente.", dimension: "attraction" }
+      focus: "Definir mercado y propuesta de valor",
+      tasks: [
+        "Definir cliente ideal",
+        "Definir propuesta de valor",
+        "Identificar problema principal del cliente"
       ]
     },
     2: {
-      typicalProblems: ["Captación irregular", "Sin métricas de atracción"],
-      strategicFocus: "Estandarizar atracción y medir demanda.",
-      suggestedTasks: [
-        { title: "Calendario de contenidos", description: "Publicar contenido de valor 3 veces por semana.", dimension: "attraction" },
-        { title: "Tracking de leads", description: "Registrar leads semanales por fuente.", dimension: "attraction" }
+      focus: "Crear presencia inicial",
+      tasks: [
+        "Abrir canal principal de adquisición",
+        "Crear perfiles en redes o canal principal",
+        "Publicar contenido inicial"
       ]
     },
     3: {
-      typicalProblems: ["Canales no diversificados"],
-      strategicFocus: "Optimizar canales con mejor costo por lead.",
-      suggestedTasks: [
-        { title: "A/B de mensajes", description: "Probar dos propuestas de mensaje en campañas.", dimension: "attraction" }
+      focus: "Optimizar generación de leads",
+      tasks: [
+        "Crear lead magnet",
+        "Crear landing de captura",
+        "Medir tráfico y conversiones"
       ]
     },
     4: {
-      typicalProblems: ["Saturación de audiencias"],
-      strategicFocus: "Escalar adquisición con segmentación avanzada.",
-      suggestedTasks: [
-        { title: "Expansión de canal", description: "Abrir un segundo canal con presupuesto controlado.", dimension: "attraction" }
+      focus: "Construir sistema de adquisición",
+      tasks: [
+        "Crear funnel de captación",
+        "Optimizar tráfico",
+        "Implementar campañas de adquisición"
       ]
     },
     5: {
-      typicalProblems: ["Riesgo de dependencia de marca personal"],
-      strategicFocus: "Construir marca escalable y sostenible.",
-      suggestedTasks: [
-        { title: "Playbook de adquisición", description: "Documentar estrategia para replicar por equipo.", dimension: "attraction" }
+      focus: "Escalar adquisición",
+      tasks: [
+        "Automatizar generación de leads",
+        "Expandir canales de adquisición",
+        "Optimizar CAC"
       ]
     }
   },
   conversion: {
     1: {
-      typicalProblems: ["No existe proceso comercial", "Baja tasa de cierre"],
-      strategicFocus: "Diseñar embudo comercial básico.",
-      suggestedTasks: [
-        { title: "Mapa de embudo", description: "Definir etapas desde lead hasta cierre.", dimension: "conversion" },
-        { title: "Script comercial", description: "Crear guion para llamadas de diagnóstico.", dimension: "conversion" }
+      focus: "Validar oferta",
+      tasks: [
+        "Definir oferta principal",
+        "Realizar primeras ventas",
+        "Validar propuesta con clientes"
       ]
     },
     2: {
-      typicalProblems: ["Seguimiento inconsistente"],
-      strategicFocus: "Estandarizar seguimiento y calificación.",
-      suggestedTasks: [
-        { title: "Regla de seguimiento", description: "Aplicar secuencia de 5 contactos por lead.", dimension: "conversion" }
+      focus: "Estructurar proceso de ventas",
+      tasks: [
+        "Crear guion de ventas",
+        "Definir proceso comercial",
+        "Registrar leads manualmente"
       ]
     },
     3: {
-      typicalProblems: ["Objeciones repetitivas"],
-      strategicFocus: "Aumentar conversión con propuesta clara.",
-      suggestedTasks: [
-        { title: "Biblioteca de objeciones", description: "Documentar respuestas a objeciones clave.", dimension: "conversion" }
+      focus: "Optimizar conversión",
+      tasks: [
+        "Crear landing de ventas",
+        "Mejorar propuesta comercial",
+        "Medir tasa de conversión"
       ]
     },
     4: {
-      typicalProblems: ["Cuellos de botella del equipo"],
-      strategicFocus: "Optimizar velocidad de cierre.",
-      suggestedTasks: [
-        { title: "SLA comercial", description: "Definir tiempos de respuesta máximos por etapa.", dimension: "conversion" }
+      focus: "Construir sistema de ventas",
+      tasks: [
+        "Implementar CRM",
+        "Automatizar seguimiento de leads",
+        "Optimizar pipeline"
       ]
     },
     5: {
-      typicalProblems: ["Dependencia de closers específicos"],
-      strategicFocus: "Escalar conversión con sistema replicable.",
-      suggestedTasks: [
-        { title: "Academia interna", description: "Entrenar equipo en proceso de venta estandarizado.", dimension: "conversion" }
+      focus: "Escalar ventas",
+      tasks: [
+        "Optimizar proceso comercial",
+        "Delegar ventas",
+        "Escalar conversiones"
       ]
     }
   },
   automation: {
     1: {
-      typicalProblems: ["Operación manual", "Falta de autoridad de marca"],
-      strategicFocus: "Crear activos y automatizaciones mínimas.",
-      suggestedTasks: [
-        { title: "Activos de autoridad", description: "Publicar casos de éxito y testimonios.", dimension: "automation" },
-        { title: "Automatización inicial", description: "Automatizar captación y seguimiento básico.", dimension: "automation" }
-      ]
+      focus: "Identificar procesos repetitivos",
+      tasks: ["Mapear procesos operativos", "Documentar tareas repetitivas"]
     },
     2: {
-      typicalProblems: ["Procesos dispersos"],
-      strategicFocus: "Centralizar procesos clave.",
-      suggestedTasks: [
-        { title: "Estandarizar SOP", description: "Crear SOP para marketing y ventas.", dimension: "automation" }
-      ]
+      focus: "Implementar herramientas básicas",
+      tasks: ["Usar herramientas de gestión", "Centralizar información"]
     },
     3: {
-      typicalProblems: ["Automatización parcial"],
-      strategicFocus: "Conectar herramientas y datos.",
-      suggestedTasks: [
-        { title: "Integración CRM", description: "Unificar datos de leads y clientes.", dimension: "automation" }
-      ]
+      focus: "Automatizar procesos clave",
+      tasks: ["Automatizar seguimiento de clientes", "Automatizar marketing básico"]
     },
     4: {
-      typicalProblems: ["Falta de observabilidad"],
-      strategicFocus: "Optimizar sistemas con alertas y KPIs.",
-      suggestedTasks: [
-        { title: "Panel operativo", description: "Crear panel semanal con métricas críticas.", dimension: "automation" }
-      ]
+      focus: "Optimizar operaciones",
+      tasks: ["Automatizar procesos internos", "Optimizar flujo de trabajo"]
     },
     5: {
-      typicalProblems: ["Complejidad operativa"],
-      strategicFocus: "Mantener eficiencia al escalar.",
-      suggestedTasks: [
-        { title: "Auditoría trimestral", description: "Revisar procesos automatizados para reducir fricción.", dimension: "automation" }
-      ]
+      focus: "Sistema empresarial automatizado",
+      tasks: ["Automatizar procesos estratégicos", "Reducir dependencia operativa"]
     }
   },
   scale: {
     1: {
-      typicalProblems: ["Dependencia total del fundador"],
-      strategicFocus: "Establecer estructura mínima de crecimiento.",
-      suggestedTasks: [
-        { title: "Mapa de roles", description: "Definir funciones críticas para delegar.", dimension: "scale" }
-      ]
+      focus: "Estabilizar operaciones",
+      tasks: ["Estabilizar flujo de clientes", "Definir métricas básicas"]
     },
     2: {
-      typicalProblems: ["Capacidad limitada"],
-      strategicFocus: "Aumentar capacidad operativa.",
-      suggestedTasks: [
-        { title: "Plan de capacidad", description: "Definir límites y recursos por etapa.", dimension: "scale" }
-      ]
+      focus: "Estandarizar procesos",
+      tasks: ["Documentar procesos", "Definir roles"]
     },
     3: {
-      typicalProblems: ["Crecimiento inestable"],
-      strategicFocus: "Crear ritmo estable de ejecución.",
-      suggestedTasks: [
-        { title: "Ritual de performance", description: "Reunión semanal de revisión de métricas.", dimension: "scale" }
-      ]
+      focus: "Preparar crecimiento",
+      tasks: ["Optimizar estructura operativa", "Establecer KPIs"]
     },
     4: {
-      typicalProblems: ["Escala con fricción"],
-      strategicFocus: "Escalar sin perder calidad.",
-      suggestedTasks: [
-        { title: "Control de calidad", description: "Definir checklist de calidad por entrega.", dimension: "scale" }
-      ]
+      focus: "Expandir capacidad",
+      tasks: ["Delegar operaciones", "Expandir equipo"]
     },
     5: {
-      typicalProblems: ["Riesgo de estancamiento"],
-      strategicFocus: "Expandir en nuevos mercados.",
-      suggestedTasks: [
-        { title: "Roadmap de expansión", description: "Diseñar plan semestral de expansión.", dimension: "scale" }
-      ]
+      focus: "Escalar negocio",
+      tasks: ["Expandir mercado", "Escalar sistema de adquisición"]
     }
   }
 };
-
-function scoreToLevel(score: number): 1 | 2 | 3 | 4 | 5 {
-  if (score <= 3) return 1;
-  if (score <= 6) return 2;
-  if (score <= 9) return 3;
-  if (score <= 12) return 4;
-  return 5;
-}
-
-function getDimensionLevels(result: DiagnosticResult) {
-  return {
-    attraction: scoreToLevel(result.attraction),
-    conversion: scoreToLevel(result.conversion),
-    automation: scoreToLevel(result.automation),
-    scale: scoreToLevel(result.scale)
-  } as const;
-}
-
-export function calculateBusinessStage(result: DiagnosticResult): BusinessStage {
-  const levels = Object.values(getDimensionLevels(result));
-  const avg = levels.reduce((acc, v) => acc + v, 0) / levels.length;
-
-  if (avg < 1.8) return "IDEA";
-  if (avg < 2.6) return "VALIDATION";
-  if (avg < 3.4) return "GROWTH";
-  if (avg < 4.4) return "SYSTEMIZATION";
-  return "SCALE";
-}
-
-export function getStrategicFocus(result: DiagnosticResult): string {
-  const priorities = generatePriorities(result);
-  const primary = priorities[0];
-  const level = getDimensionLevels(result)[primary];
-  return ACAE_MATRIX[primary][level].strategicFocus;
-}
-
-function generatePriorities(result: DiagnosticResult): BusinessDimension[] {
-  const levels = getDimensionLevels(result);
-  return (Object.keys(levels) as BusinessDimension[]).sort((a, b) => levels[a] - levels[b]);
-}
-
-export function generateTasksFromDiagnostic(result: DiagnosticResult): Task[] {
-  const priorities = generatePriorities(result).slice(0, 2);
-
-  return priorities.flatMap((dimension) => {
-    const level = getDimensionLevels(result)[dimension];
-    return ACAE_MATRIX[dimension][level].suggestedTasks;
-  });
-}
-
-export function generateActionPlan(result: DiagnosticResult): ActionPlan {
-  const priorities = generatePriorities(result);
-
-  return {
-    businessStage: calculateBusinessStage(result),
-    priorities,
-    strategicFocus: getStrategicFocus(result),
-    tasks: generateTasksFromDiagnostic(result)
-  };
-}
