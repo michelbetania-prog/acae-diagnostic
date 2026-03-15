@@ -64,3 +64,21 @@ npm run build
 - React
 - Tailwind CSS
 - Recharts
+
+## BIEM Insight Foundation
+
+This repository now includes a foundational strategic intelligence engine for **BIEM Insight**:
+
+- Questionnaire Engine (30 questions / 5 dimensions)
+- Scoring Engine (6 business dimensions + overall score)
+- Problem Detection Engine (rule based)
+- Strategic Route Engine
+- Solution Knowledge Base (63 solutions)
+- Reporting Engine (structured JSON diagnostic)
+- AI Analysis Preparation Layer (Gemini-ready payload)
+
+Key entry points:
+
+- `lib/biem/index.ts` (`runBIEMDiagnostic`)
+- `app/api/biem/diagnose/route.ts`
+- `docs/BIEM_ARCHITECTURE.md`
