@@ -1,66 +1,28 @@
-# ACAE Growth System
+# BIEM Insight
 
-ACAE Growth System es un SaaS en Next.js que conecta este flujo estratégico:
+BIEM Insight is a strategic diagnostic web application for founders and businesses.
 
-**diagnóstico → matriz ACAE → plan de acción → tareas → progreso**
+It guides users through a mentor-like strategic conversation, diagnoses structural business issues, and delivers a multi-step report that drives conversion to a free BIEM strategy session.
 
-## Componentes del sistema
+## Stack
+- Next.js 14 (App Router)
+- React + TypeScript
+- Tailwind CSS
 
-### 1) Diagnóstico
-- El usuario responde el cuestionario ACAE.
-- El motor procesa respuestas y calcula scores por dimensión.
-- Archivo principal: `lib/diagnosticEngine.ts`.
+## Core architecture
+- `lib/conversation-engine` — conversational flow and questions
+- `lib/scoring-engine` — stage + potential scoring
+- `lib/diagnostic-engine` — structural challenge detection and recommendation logic
+- `lib/report-engine` — structured strategic report generation
+- `app/api/insight/*` — backend routes for lead capture and diagnostic processing
 
-### 2) Matriz ACAE
-La matriz estratégica define niveles de madurez (1 a 5) para:
-- Atracción
-- Conversión
-- Automatización
-- Escala
-
-Cada nivel define:
-- foco estratégico,
-- tareas sugeridas.
-
-Archivo principal: `lib/acaeMatrix.ts`.
-
-### 3) Plan de acción automático
-A partir del diagnóstico, el motor genera:
-- prioridades,
-- foco estratégico,
-- tareas recomendadas,
-- etapa del negocio (`IDEA`, `VALIDATION`, `GROWTH`, `SYSTEMIZATION`, `SCALE`).
-
-Archivo principal: `lib/actionPlanEngine.ts`.
-
-### 4) Progreso
-El sistema mide:
-- progreso de tareas completadas,
-- evolución del negocio entre diagnósticos.
-
-Archivo principal: `lib/progressEngine.ts`.
-
-### 5) Integración del sistema
-`lib/growthSystem.ts` integra todos los motores y conserva la API pública para el dashboard:
-- `getDefaultGrowthState`
-- `canRunDiagnostic`
-- `getAllTasks`
-- `getTaskProgress`
-- `getLatestDiagnostic`
-- `getSessionsAvailable`
-
-## Comandos
-
+## Run locally
 ```bash
 npm install
 npm run dev
+npm run lint
 npm run build
 ```
 
-## Stack
-
-- Next.js 14 (App Router)
-- TypeScript
-- React
-- Tailwind CSS
-- Recharts
+## Documentation
+- `docs/BIEM_APP_ARCHITECTURE.md`
