@@ -377,7 +377,28 @@ export type GrowthState = {
   diagnostics: DiagnosticResult[];
 };
 
+export type SessionStepStatus = "pending" | "completed";
+export type SessionStatus = "locked" | "active" | "completed";
+
+export type SessionStep = {
+  id: string;
+  title: string;
+  example: string;
+  feedback: string;
+  status: SessionStepStatus;
+};
+
+export type JourneySession = {
+  id: string;
+  title: string;
+  objective: string;
+  status: SessionStatus;
+  completionFeedback: string;
+  steps: SessionStep[];
+};
+
 const STORAGE_KEY = "acae_growth_system";
+const JOURNEY_KEY = "acae_growth_journey";
 const DELAY_DAYS = 7;
 
 const planLimits: Record<PlanType, number> = {
@@ -554,5 +575,147 @@ export function getProgressComparison(state: GrowthState) {
       autoridad: latest.autoridad - first.autoridad,
       escalabilidad: latest.escalabilidad - first.escalabilidad
     }
+  };
+}
+
+function createJourneyTemplate(diagnostic: DiagnosticResult): JourneySession[] {
+  const baseSteps = diagnostic.plan.slice(0, 3);
+  const fallbackSteps = [
+    "Definir una prioridad estratégica semanal",
+    "Implementar rutina comercial con revisión diaria",
+    "Medir resultados y ajustar la ejecución"
+  ];
+  const steps = (baseSteps.length ? baseSteps : fallbackSteps).slice(0, 3);
+
+  const createSteps = (sessionId: string, sessionName: string) =>
+    steps.map((step, idx) => ({
+      id: `${sessionId}-step-${idx + 1}`,
+      title: step,
+      example: `Ejemplo real: en ${sessionName}, convierte "${step}" en una acción concreta con responsable y fecha.`,
+      feedback: `Buen avance: este paso fortalece la ${diagnostic.weakestDimension.toLowerCase()} y reduce fricción operativa.`,
+      status: "pending" as SessionStepStatus
+    }));
+
+  return [
+    {
+      id: "session-1",
+      title: "Etapa 1 · Alinear enfoque",
+      objective: "Concentrar al negocio en la prioridad crítica para evitar dispersión.",
+      status: "active",
+      completionFeedback: "Sesión completada: ya tienes claridad estratégica para ejecutar con enfoque.",
+      steps: createSteps("session-1", "Etapa 1")
+    },
+    {
+      id: "session-2",
+      title: "Etapa 2 · Ejecutar sistema",
+      objective: "Convertir la estrategia en un sistema de ejecución repetible.",
+      status: "locked",
+      completionFeedback: "Sesión completada: tu ejecución ahora es más consistente y medible.",
+      steps: createSteps("session-2", "Etapa 2")
+    },
+    {
+      id: "session-3",
+      title: "Etapa 3 · Escalar controladamente",
+      objective: "Escalar resultados sin perder margen, foco ni control operativo.",
+      status: "locked",
+      completionFeedback: "Sesión completada: estás listo para escalar con disciplina de crecimiento.",
+      steps: createSteps("session-3", "Etapa 3")
+    }
+  ];
+}
+
+type JourneyStore = Record<string, JourneySession[]>;
+
+function readJourneyStore(): JourneyStore {
+  if (typeof window === "undefined") return {};
+  const raw = localStorage.getItem(JOURNEY_KEY);
+  if (!raw) return {};
+  try {
+    return JSON.parse(raw) as JourneyStore;
+  } catch {
+    return {};
+  }
+}
+
+function saveJourneyStore(store: JourneyStore) {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(JOURNEY_KEY, JSON.stringify(store));
+}
+
+export function getJourneySessions(diagnostic: DiagnosticResult): JourneySession[] {
+  const store = readJourneyStore();
+  const existing = store[diagnostic.id];
+  if (existing?.length) return existing;
+
+  const initial = createJourneyTemplate(diagnostic);
+  const nextStore: JourneyStore = { ...store, [diagnostic.id]: initial };
+  saveJourneyStore(nextStore);
+  return initial;
+}
+
+function allStepsCompleted(session: JourneySession): boolean {
+  return session.steps.every((step) => step.status === "completed");
+}
+
+export function completeJourneyStep(
+  diagnosticId: string,
+  sessionId: string,
+  stepId: string
+): { sessions: JourneySession[]; stepFeedback: string; sessionFeedback: string | null } {
+  const store = readJourneyStore();
+  const sessions = store[diagnosticId] ?? [];
+  let stepFeedback = "Paso actualizado.";
+  let sessionFeedback: string | null = null;
+
+  const updated = sessions.map((session) => {
+    if (session.id !== sessionId) return session;
+    if (session.status === "locked") return session;
+
+    const steps = session.steps.map((step) => {
+      if (step.id !== stepId) return step;
+      stepFeedback = step.feedback;
+      return { ...step, status: "completed" as SessionStepStatus };
+    });
+
+    const nextSession = { ...session, steps };
+    if (allStepsCompleted(nextSession)) {
+      sessionFeedback = nextSession.completionFeedback;
+      return { ...nextSession, status: "completed" as SessionStatus };
+    }
+    return nextSession;
+  });
+
+  const unlocked = updated.map((session, idx) => {
+    if (session.status !== "locked") return session;
+    const prev = updated[idx - 1];
+    if (idx === 0 || prev?.status === "completed") {
+      return { ...session, status: "active" as SessionStatus };
+    }
+    return session;
+  });
+
+  const normalized = unlocked.map((session, idx) => {
+    if (session.status === "active") {
+      const hasEarlierActive = unlocked.slice(0, idx).some((item) => item.status === "active");
+      if (hasEarlierActive) return { ...session, status: "locked" as SessionStatus };
+    }
+    return session;
+  });
+
+  saveJourneyStore({ ...store, [diagnosticId]: normalized });
+  return { sessions: normalized, stepFeedback, sessionFeedback };
+}
+
+export function getJourneyProgress(sessions: JourneySession[]) {
+  const totalSteps = sessions.reduce((acc, session) => acc + session.steps.length, 0);
+  const completedSteps = sessions.reduce(
+    (acc, session) => acc + session.steps.filter((step) => step.status === "completed").length,
+    0
+  );
+
+  return {
+    totalSteps,
+    completedSteps,
+    percent: totalSteps ? Math.round((completedSteps / totalSteps) * 100) : 0
   };
 }
