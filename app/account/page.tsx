@@ -1,18 +1,26 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { PlanType, getGrowthState, updatePlan } from "@/lib/growthSystem";
+import { PlanType, UserRole, getGrowthState, updatePlan, updateRole } from "@/lib/growthSystem";
 
 export default function AccountPage() {
   const [plan, setPlan] = useState<PlanType>("free");
+  const [role, setRole] = useState<UserRole>("user");
 
   useEffect(() => {
-    setPlan(getGrowthState().plan);
+    const state = getGrowthState();
+    setPlan(state.plan);
+    setRole(state.role);
   }, []);
 
   const handlePlan = (nextPlan: PlanType) => {
     setPlan(nextPlan);
     updatePlan(nextPlan);
+  };
+
+  const handleRole = (nextRole: UserRole) => {
+    setRole(nextRole);
+    updateRole(nextRole);
   };
 
   return (
@@ -31,6 +39,20 @@ export default function AccountPage() {
           <option value="free">FREE (1 diagnóstico)</option>
           <option value="standard">STANDARD (3 diagnósticos)</option>
           <option value="pro">PRO (4 diagnósticos)</option>
+        </select>
+      </section>
+
+      <section className="mt-4 rounded-xl border border-slate-200 bg-white p-5 shadow-soft">
+        <label htmlFor="role" className="mb-2 block text-sm font-medium text-slate-700">Rol</label>
+        <select
+          id="role"
+          value={role}
+          onChange={(e) => handleRole(e.target.value as UserRole)}
+          className="rounded-md border border-slate-300 px-3 py-2"
+        >
+          <option value="user">Usuario (restricciones activas)</option>
+          <option value="builder">Builder / Modo Prueba</option>
+          <option value="admin">Admin / Sin restricciones</option>
         </select>
       </section>
     </main>

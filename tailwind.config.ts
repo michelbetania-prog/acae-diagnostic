@@ -11,10 +11,14 @@ const config: Config = {
     extend: {
       colors: {
         brand: {
-          50: "#f3f7ff",
-          100: "#e5eeff",
-          600: "#275df6",
-          700: "#1f49c6"
+          50: "#e6e6fa",
+          100: "#dcd3f3",
+          600: "#371e68",
+          700: "#4B0082"
+        },
+        lavender: {
+          50: "#f3f0fb",
+          100: "#e6e6fa"
         }
       },
       boxShadow: {
