@@ -383,7 +383,10 @@ export type SessionStatus = "locked" | "active" | "completed";
 export type SessionStep = {
   id: string;
   title: string;
+  objective: string;
+  instructions: string[];
   example: string;
+  warning: string;
   feedback: string;
   status: SessionStepStatus;
 };
@@ -591,7 +594,14 @@ function createJourneyTemplate(diagnostic: DiagnosticResult): JourneySession[] {
     steps.map((step, idx) => ({
       id: `${sessionId}-step-${idx + 1}`,
       title: step,
+      objective: `Completar "${step}" para consolidar la etapa ${idx + 1} del sistema comercial.`,
+      instructions: [
+        "Define responsable y fecha límite del paso.",
+        "Ejecuta una versión mínima en menos de 48 horas.",
+        "Mide resultado y documenta ajuste para repetir."
+      ],
       example: `Ejemplo real: en ${sessionName}, convierte "${step}" en una acción concreta con responsable y fecha.`,
+      warning: "Error común: ejecutar sin métricas de validación ni seguimiento semanal.",
       feedback: `Buen avance: este paso fortalece la ${diagnostic.weakestDimension.toLowerCase()} y reduce fricción operativa.`,
       status: "pending" as SessionStepStatus
     }));
