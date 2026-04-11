@@ -8,11 +8,13 @@ import {
   BrainQuestion,
   BrainState,
   buildSystemReply,
+  canGenerateStrategicOutput,
   createInitialBrainState,
   getBrainProgress,
   getNextQuestion,
   mapBrainToAcaeAnswers,
-  registerAnswer
+  registerAnswer,
+  validateResponse
 } from "@/lib/acae-brain";
 
 type ChatMessage = {
@@ -63,13 +65,19 @@ export default function DiagnosticPage() {
 
   const submitCurrentAnswer = () => {
     if (!currentQuestion || selectedScore === null) return;
+    const note = userNote.trim();
+    const quality = validateResponse(selectedScore, note);
+    if (!quality.valid) {
+      setMessage(quality.reason ?? "Respuesta inválida.");
+      return;
+    }
 
-    const nextBrain = registerAnswer(brain, currentQuestion, selectedScore, userNote.trim() || undefined);
+    const nextBrain = registerAnswer(brain, currentQuestion, selectedScore, note || undefined);
     const systemReply = buildSystemReply(nextBrain);
     const nextQuestion = getNextQuestion(nextBrain);
 
     const userMessageParts = [`Puntaje: ${selectedScore}/5`];
-    if (userNote.trim()) userMessageParts.push(`Nota: ${userNote.trim()}`);
+    if (note) userMessageParts.push(`Nota: ${note}`);
 
     const nextMessages: ChatMessage[] = [
       ...messages,
@@ -104,9 +112,16 @@ export default function DiagnosticPage() {
     setCurrentQuestion(nextQuestion);
     setSelectedScore(null);
     setUserNote("");
+    setMessage("");
   };
 
   const finishDiagnostic = () => {
+    const outputGate = canGenerateStrategicOutput(brain);
+    if (!outputGate.allowed) {
+      setMessage(outputGate.reason ?? "Falta validar información crítica.");
+      return;
+    }
+
     const acaeAnswers = mapBrainToAcaeAnswers(brain);
     const result = runDiagnostic(acaeAnswers);
     if (!result.created) {

@@ -14,6 +14,7 @@ export type BrainQuestion = {
   flow: SubFlow;
   text: string;
   dimension: "atraccion" | "conversion" | "autoridad" | "escalabilidad";
+  level: "base" | "causa";
 };
 
 export type BrainState = {
@@ -23,6 +24,10 @@ export type BrainState = {
   askedQuestionIds: string[];
   criticalFocus: SubFlow | null;
   conversationNotes: string[];
+  blocked: boolean;
+  blockedReason: string | null;
+  clarityScore: number;
+  rootCauseConfirmed: boolean;
 };
 
 const QUESTION_BANK: Record<SubFlow, BrainQuestion[]> = {
@@ -31,19 +36,29 @@ const QUESTION_BANK: Record<SubFlow, BrainQuestion[]> = {
       id: "oferta-1",
       flow: "flujoOferta",
       text: "¿Qué tan claro es el resultado concreto que promete tu oferta?",
-      dimension: "autoridad"
+      dimension: "autoridad",
+      level: "base"
     },
     {
       id: "oferta-2",
       flow: "flujoOferta",
       text: "¿Tu cliente ideal entiende por qué elegirte en menos de 30 segundos?",
-      dimension: "atraccion"
+      dimension: "atraccion",
+      level: "base"
     },
     {
       id: "oferta-3",
       flow: "flujoOferta",
       text: "¿Tienes evidencia de que el mercado está dispuesto a pagar hoy?",
-      dimension: "conversion"
+      dimension: "conversion",
+      level: "base"
+    },
+    {
+      id: "oferta-causa-1",
+      flow: "flujoOferta",
+      text: "¿La causa real es mensaje confuso, nicho incorrecto o promesa débil?",
+      dimension: "autoridad",
+      level: "causa"
     }
   ],
   flujoSeguimiento: [
@@ -51,19 +66,29 @@ const QUESTION_BANK: Record<SubFlow, BrainQuestion[]> = {
       id: "seguimiento-1",
       flow: "flujoSeguimiento",
       text: "¿Tus leads reciben seguimiento dentro de 24 horas?",
-      dimension: "conversion"
+      dimension: "conversion",
+      level: "base"
     },
     {
       id: "seguimiento-2",
       flow: "flujoSeguimiento",
       text: "¿Tienes una secuencia definida para dar seguimiento sin improvisar?",
-      dimension: "escalabilidad"
+      dimension: "escalabilidad",
+      level: "base"
     },
     {
       id: "seguimiento-3",
       flow: "flujoSeguimiento",
       text: "¿Mides cuántos leads se pierden por falta de seguimiento?",
-      dimension: "conversion"
+      dimension: "conversion",
+      level: "base"
+    },
+    {
+      id: "seguimiento-causa-1",
+      flow: "flujoSeguimiento",
+      text: "¿La causa real es falta de proceso, disciplina comercial o responsable claro?",
+      dimension: "conversion",
+      level: "causa"
     }
   ],
   flujoConversion: [
@@ -71,19 +96,29 @@ const QUESTION_BANK: Record<SubFlow, BrainQuestion[]> = {
       id: "conversion-1",
       flow: "flujoConversion",
       text: "¿Tu proceso comercial convierte de forma predecible cada semana?",
-      dimension: "conversion"
+      dimension: "conversion",
+      level: "base"
     },
     {
       id: "conversion-2",
       flow: "flujoConversion",
       text: "¿Tu equipo domina objeciones clave antes del cierre?",
-      dimension: "autoridad"
+      dimension: "autoridad",
+      level: "base"
     },
     {
       id: "conversion-3",
       flow: "flujoConversion",
       text: "¿Conoces tu tasa de cierre por canal y segmento?",
-      dimension: "escalabilidad"
+      dimension: "escalabilidad",
+      level: "base"
+    },
+    {
+      id: "conversion-causa-1",
+      flow: "flujoConversion",
+      text: "¿La causa real del bajo cierre está en oferta, proceso o calificación de leads?",
+      dimension: "conversion",
+      level: "causa"
     }
   ],
   flujoEscala: [
@@ -91,19 +126,29 @@ const QUESTION_BANK: Record<SubFlow, BrainQuestion[]> = {
       id: "escala-1",
       flow: "flujoEscala",
       text: "¿El negocio puede crecer sin aumentar tu carga operativa directa?",
-      dimension: "escalabilidad"
+      dimension: "escalabilidad",
+      level: "base"
     },
     {
       id: "escala-2",
       flow: "flujoEscala",
       text: "¿Tienes procesos comerciales documentados y delegables?",
-      dimension: "escalabilidad"
+      dimension: "escalabilidad",
+      level: "base"
     },
     {
       id: "escala-3",
       flow: "flujoEscala",
       text: "¿Tu adquisición está diversificada en más de un canal rentable?",
-      dimension: "atraccion"
+      dimension: "atraccion",
+      level: "base"
+    },
+    {
+      id: "escala-causa-1",
+      flow: "flujoEscala",
+      text: "¿La causa real del freno es dependencia del fundador, baja automatización o márgenes débiles?",
+      dimension: "escalabilidad",
+      level: "causa"
     }
   ]
 };
@@ -117,15 +162,12 @@ export function createInitialBrainState(): BrainState {
     respuestas: {},
     askedQuestionIds: [],
     criticalFocus: null,
-    conversationNotes: []
+    conversationNotes: [],
+    blocked: false,
+    blockedReason: null,
+    clarityScore: 0,
+    rootCauseConfirmed: false
   };
-}
-
-function inferCriticalFlow(questionId: string): SubFlow {
-  if (questionId.startsWith("oferta")) return "flujoOferta";
-  if (questionId.startsWith("seguimiento")) return "flujoSeguimiento";
-  if (questionId.startsWith("conversion")) return "flujoConversion";
-  return "flujoEscala";
 }
 
 function mapProblem(flow: SubFlow): ProblemaDetectado {
@@ -142,6 +184,44 @@ function mapScenario(flow: SubFlow): BrainScenario {
   return "RIESGO_ESCALA";
 }
 
+export function validateResponse(score: number, note: string): { valid: boolean; reason?: string } {
+  const trimmed = note.trim();
+  if (score <= 3 && trimmed.length < 12) {
+    return {
+      valid: false,
+      reason: "Respuesta vaga: explica con más detalle qué está pasando en tu negocio."
+    };
+  }
+
+  const vaguePatterns = ["no sé", "tal vez", "más o menos", "normal", "todo bien"];
+  if (trimmed && vaguePatterns.some((pattern) => trimmed.toLowerCase().includes(pattern))) {
+    return {
+      valid: false,
+      reason: "Detecté ambigüedad. Necesito una respuesta concreta para seguir."
+    };
+  }
+
+  return { valid: true };
+}
+
+function countCriticalByFlow(state: BrainState): Record<SubFlow, number> {
+  const counter: Record<SubFlow, number> = {
+    flujoOferta: 0,
+    flujoSeguimiento: 0,
+    flujoConversion: 0,
+    flujoEscala: 0
+  };
+
+  FLOW_ORDER.forEach((flow) => {
+    QUESTION_BANK[flow].forEach((question) => {
+      const value = state.respuestas[question.id];
+      if (typeof value === "number" && value <= 2) counter[flow] += 1;
+    });
+  });
+
+  return counter;
+}
+
 export function registerAnswer(state: BrainState, question: BrainQuestion, value: number, note?: string): BrainState {
   const next: BrainState = {
     ...state,
@@ -149,41 +229,46 @@ export function registerAnswer(state: BrainState, question: BrainQuestion, value
     askedQuestionIds: state.askedQuestionIds.includes(question.id)
       ? state.askedQuestionIds
       : [...state.askedQuestionIds, question.id],
-    conversationNotes: note ? [...state.conversationNotes, note] : state.conversationNotes
+    conversationNotes: note ? [...state.conversationNotes, note] : state.conversationNotes,
+    blocked: false,
+    blockedReason: null
   };
 
-  if (value <= 2) {
-    const critical = inferCriticalFlow(question.id);
-    next.criticalFocus = critical;
-    next.problemaDetectado = mapProblem(critical);
-    next.escenario = mapScenario(critical);
+  if (question.id.startsWith("oferta") && question.level === "base") {
+    const currentClarity = next.clarityScore + value;
+    next.clarityScore = currentClarity;
+  }
+
+  const repeatedCritical = countCriticalByFlow(next);
+  const dominantFlow = FLOW_ORDER.sort((a, b) => repeatedCritical[b] - repeatedCritical[a])[0];
+
+  if (repeatedCritical[dominantFlow] >= 2) {
+    next.criticalFocus = dominantFlow;
+    next.problemaDetectado = mapProblem(dominantFlow);
+    next.escenario = mapScenario(dominantFlow);
+  }
+
+  if (question.level === "causa" && value <= 3) {
+    next.rootCauseConfirmed = true;
   }
 
   return next;
 }
 
-function pickUnaskedQuestion(state: BrainState, flow: SubFlow): BrainQuestion | null {
-  const pending = QUESTION_BANK[flow].find((question) => !state.askedQuestionIds.includes(question.id));
-  return pending ?? null;
+function pickQuestion(state: BrainState, flow: SubFlow, level: "base" | "causa"): BrainQuestion | null {
+  return (
+    QUESTION_BANK[flow].find((question) => question.level === level && !state.askedQuestionIds.includes(question.id)) ?? null
+  );
 }
 
 export function getNextQuestion(state: BrainState): BrainQuestion | null {
   if (state.criticalFocus) {
-    const criticalQuestion = pickUnaskedQuestion(state, state.criticalFocus);
-    if (criticalQuestion) return criticalQuestion;
+    const causeQuestion = pickQuestion(state, state.criticalFocus, "causa");
+    if (causeQuestion) return causeQuestion;
   }
 
-  const weaknessByFlow = FLOW_ORDER.map((flow) => {
-    const values = QUESTION_BANK[flow]
-      .map((question) => state.respuestas[question.id])
-      .filter((value): value is number => typeof value === "number");
-
-    const avg = values.length ? values.reduce((acc, value) => acc + value, 0) / values.length : 0;
-    return { flow, avg };
-  }).sort((a, b) => a.avg - b.avg);
-
-  for (const item of weaknessByFlow) {
-    const pending = pickUnaskedQuestion(state, item.flow);
+  for (const flow of FLOW_ORDER) {
+    const pending = pickQuestion(state, flow, "base");
     if (pending) return pending;
   }
 
@@ -191,19 +276,41 @@ export function getNextQuestion(state: BrainState): BrainQuestion | null {
 }
 
 export function buildSystemReply(state: BrainState): string {
-  if (state.problemaDetectado === "Sin problema crítico") {
-    return "Estoy analizando tu contexto. Aún no detecto un bloqueo crítico, sigamos afinando.";
+  if (state.blocked && state.blockedReason) {
+    return `No puedo avanzar todavía: ${state.blockedReason}`;
   }
 
-  const note = state.conversationNotes.length
-    ? ` Tomo en cuenta lo que mencionaste: "${state.conversationNotes[state.conversationNotes.length - 1]}".`
-    : "";
+  if (state.problemaDetectado === "Sin problema crítico") {
+    return "Seguimos afinando diagnóstico. Necesito precisión para evitar recomendaciones superficiales.";
+  }
 
-  return `Detecté foco crítico en ${state.problemaDetectado.toLowerCase()}. Ajusto las siguientes preguntas para profundizar en ese punto.${note}`;
+  if (state.rootCauseConfirmed) {
+    return `Confirmé causa raíz en ${state.problemaDetectado.toLowerCase()}. Ahora sí podemos diseñar ejecución accionable.`;
+  }
+
+  return `Detecté patrón repetido en ${state.problemaDetectado.toLowerCase()}. Voy a profundizar en causa real, no en síntomas.`;
+}
+
+export function canGenerateStrategicOutput(state: BrainState): { allowed: boolean; reason?: string } {
+  if (state.clarityScore < 8) {
+    return {
+      allowed: false,
+      reason: "Bloqueado: no hay claridad suficiente de idea/oferta. Debes definir mejor la base estratégica."
+    };
+  }
+
+  if (!state.rootCauseConfirmed && state.problemaDetectado !== "Sin problema crítico") {
+    return {
+      allowed: false,
+      reason: "Bloqueado: aún no está confirmada la causa raíz."
+    };
+  }
+
+  return { allowed: true };
 }
 
 export function mapBrainToAcaeAnswers(state: BrainState): Record<number, number> {
-  const defaultValue = 3;
+  const defaultValue = 2;
   const scoreByDimension = {
     atraccion: [] as number[],
     conversion: [] as number[],
@@ -243,8 +350,9 @@ export function mapBrainToAcaeAnswers(state: BrainState): Record<number, number>
 }
 
 export function getBrainProgress(state: BrainState): { asked: number; total: number } {
+  const total = FLOW_ORDER.reduce((acc, flow) => acc + QUESTION_BANK[flow].length, 0);
   return {
     asked: state.askedQuestionIds.length,
-    total: FLOW_ORDER.reduce((acc, flow) => acc + QUESTION_BANK[flow].length, 0)
+    total
   };
 }
