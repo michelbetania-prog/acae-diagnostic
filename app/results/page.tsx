@@ -9,8 +9,8 @@ import { ACAEScore } from "@/lib/calculateACAE";
 import { PlanType, getGrowthState, getLatestDiagnostic, updatePlan } from "@/lib/growthSystem";
 
 type DynamicContext = {
-  flow: "VALIDACION" | "CONVERSION" | "ESCALA" | "CAOS";
-  context: "idea" | "operando" | "creciendo";
+  flow: "VALIDACION" | "CONVERSION" | "ESCALA" | "CAOS" | "flujoOferta" | "flujoSeguimiento" | "flujoConversion" | "flujoEscala";
+  context: "idea" | "operando" | "creciendo" | "EXPLORACION" | "RIESGO_OFERTA" | "RIESGO_SEGUIMIENTO" | "RIESGO_CONVERSION" | "RIESGO_ESCALA";
   realtime: {
     mainProblem: string;
     impact: string;
