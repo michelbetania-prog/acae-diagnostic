@@ -356,3 +356,7 @@ export function getBrainProgress(state: BrainState): { asked: number; total: num
     total
   };
 }
+
+export function getDiagnosticStepOutline(): Array<{ id: string; label: string }> {
+  return FLOW_ORDER.flatMap((flow) => QUESTION_BANK[flow].map((question) => ({ id: question.id, label: question.text })));
+}

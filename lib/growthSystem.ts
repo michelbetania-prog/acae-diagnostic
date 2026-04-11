@@ -369,11 +369,13 @@ export function runStrategicAnalysis(input: StrategicInput): StrategicAnalysisRe
 // ==================================================
 
 export type PlanType = "free" | "standard" | "pro";
+export type UserRole = "user" | "admin" | "builder";
 export type ActionTask = Task;
 export type DiagnosticResult = DiagnosticRecord;
 
 export type GrowthState = {
   plan: PlanType;
+  role: UserRole;
   diagnostics: DiagnosticResult[];
 };
 
@@ -443,6 +445,7 @@ function createTasksFromActionPlan(actionPlan: ActionPlanBase): ActionTask[] {
 export function getDefaultGrowthState(): GrowthState {
   return {
     plan: "free",
+    role: "user",
     diagnostics: []
   };
 }
@@ -453,7 +456,12 @@ export function getGrowthState(): GrowthState {
   if (!raw) return getDefaultGrowthState();
 
   try {
-    return JSON.parse(raw) as GrowthState;
+    const parsed = JSON.parse(raw) as Partial<GrowthState>;
+    return {
+      plan: parsed.plan ?? "free",
+      role: parsed.role ?? "user",
+      diagnostics: parsed.diagnostics ?? []
+    };
   } catch {
     return getDefaultGrowthState();
   }
@@ -471,6 +479,17 @@ export function updatePlan(plan: PlanType) {
   return next;
 }
 
+export function updateRole(role: UserRole) {
+  const state = getGrowthState();
+  const next = { ...state, role };
+  saveGrowthState(next);
+  return next;
+}
+
+export function isBuilderMode(state: GrowthState) {
+  return state.role === "admin" || state.role === "builder";
+}
+
 export function getPlanLimit(plan: PlanType) {
   return planLimits[plan];
 }
@@ -484,6 +503,14 @@ export function getNextAvailableDate(state: GrowthState): Date | null {
 }
 
 export function canRunDiagnostic(state: GrowthState) {
+  if (isBuilderMode(state)) {
+    return {
+      allowed: true,
+      remaining: Number.POSITIVE_INFINITY,
+      nextDate: null
+    };
+  }
+
   const countLimit = state.diagnostics.length < planLimits[state.plan];
   const next = getNextAvailableDate(state);
   const delayReady = !next || new Date() >= next;
