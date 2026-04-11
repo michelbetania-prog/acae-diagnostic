@@ -13,8 +13,8 @@ import {
 
 function badgeStyles(status: JourneySession["status"]) {
   if (status === "completed") return "bg-emerald-100 text-emerald-700";
-  if (status === "active") return "bg-brand-100 text-brand-700";
-  return "bg-slate-200 text-slate-600";
+  if (status === "active") return "bg-lavender-100 text-brand-700 border border-brand-700";
+  return "bg-slate-200 text-slate-600 opacity-80";
 }
 
 function badgeLabel(status: JourneySession["status"]) {
@@ -82,7 +82,11 @@ export default function DashboardActionPlanPage() {
             <article
               key={session.id}
               className={`rounded-2xl border p-5 shadow-soft ${
-                session.status === "locked" ? "border-slate-200 bg-slate-50" : "border-slate-200 bg-white"
+                session.status === "locked"
+                  ? "border-slate-300 bg-slate-100 opacity-80"
+                  : session.status === "active"
+                    ? "border-brand-700 bg-lavender-100"
+                    : "border-emerald-200 bg-white"
               }`}
             >
               <div className="flex flex-wrap items-center justify-between gap-3">
@@ -113,8 +117,8 @@ export default function DashboardActionPlanPage() {
                         step.status === "completed"
                           ? "border-emerald-200 bg-emerald-50"
                           : dependencyReady
-                            ? "border-slate-200 bg-white"
-                            : "border-slate-200 bg-slate-50"
+                            ? "border-brand-700 bg-lavender-100"
+                            : "border-slate-300 bg-slate-100 opacity-80"
                       } ${isAnimated ? "scale-[1.01]" : "scale-100"}`}
                     >
                       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -128,7 +132,7 @@ export default function DashboardActionPlanPage() {
                         <button
                           type="button"
                           onClick={() => setOpenStepId(isOpen ? null : step.id)}
-                          className="rounded-lg border border-slate-300 px-3 py-1 text-xs font-semibold text-slate-700"
+                          className="rounded-lg border border-brand-700 px-3 py-1 text-xs font-semibold text-brand-700"
                         >
                           {isOpen ? "Ocultar detalle" : "Ver detalle"}
                         </button>
