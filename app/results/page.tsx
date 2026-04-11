@@ -8,106 +8,85 @@ import { ResultSummary } from "@/components/ResultSummary";
 import { ACAEScore } from "@/lib/calculateACAE";
 import { PlanType, getGrowthState, getLatestDiagnostic, updatePlan } from "@/lib/growthSystem";
 
-type StrategicReport = {
-  headline: string;
-  diagnosticoPrincipal: string;
-  problemaDetectado: string;
-  causaRaiz: string;
-  estrategiaRecomendada: string;
-  planAccion: string[];
-  proInsights: string[];
+type DynamicContext = {
+  flow: "VALIDACION" | "CONVERSION" | "ESCALA" | "CAOS";
+  context: "idea" | "operando" | "creciendo";
+  realtime: {
+    mainProblem: string;
+    impact: string;
+    rootCause: string;
+    consequence: string;
+  };
 };
 
-function buildStrategicReport(scores: ACAEScore): StrategicReport {
-  const dimensions = [
-    { key: "Atracción", value: scores.atraccion },
-    { key: "Conversión", value: scores.conversion },
-    { key: "Autoridad", value: scores.autoridad },
-    { key: "Escalabilidad", value: scores.escalabilidad }
-  ];
+type StrategicReport = {
+  headline: string;
+  problema: string;
+  impacto: string;
+  causa: string;
+  consecuencia: string;
+  estrategia: string[];
+  ejecucion: string[];
+};
 
-  const weakest = [...dimensions].sort((a, b) => a.value - b.value)[0];
+function buildStrategicReport(scores: ACAEScore, dynamic: DynamicContext | null): StrategicReport {
   const total = scores.total;
 
-  if (total <= 20) {
+  if (dynamic) {
     return {
-      headline: "Tu negocio tiene potencial, pero hoy no está capturando demanda de forma predecible.",
-      diagnosticoPrincipal: "Operación frágil con baja tracción comercial.",
-      problemaDetectado: "No existe un sistema consistente para atraer y convertir oportunidades.",
-      causaRaiz: "Falta de enfoque en una oferta clara y un proceso comercial repetible.",
-      estrategiaRecomendada: "Priorizar validación rápida de oferta + embudo mínimo de captación y cierre.",
-      planAccion: [
-        "Definir una propuesta de valor en una frase con resultado medible.",
-        "Publicar una oferta principal con llamado a acción único.",
-        "Implementar guion de venta breve para detectar objeciones.",
-        "Medir semanalmente leads, reuniones y cierres para ajustar foco."
+      headline: `Flujo ${dynamic.flow}: diagnóstico estratégico completado para contexto ${dynamic.context}.`,
+      problema: dynamic.realtime.mainProblem,
+      impacto: dynamic.realtime.impact,
+      causa: dynamic.realtime.rootCause,
+      consecuencia: dynamic.realtime.consequence,
+      estrategia: [
+        "Definir foco estratégico único por 30 días y criterio de éxito semanal.",
+        "Priorizar una palanca crítica del flujo seleccionado para eliminar fricción principal.",
+        "Diseñar tablero de control con 3 métricas de decisión para sostener ritmo."
       ],
-      proInsights: [
-        "Secuencia de 14 días para generar primeras ventas sin depender de improvisación.",
-        "Framework de objeciones para elevar cierres en llamadas iniciales.",
-        "Plantilla de tablero de KPIs para controlar avance comercial semanal."
+      ejecucion: [
+        "Semana 1: implementar cambios de alto impacto y baja complejidad.",
+        "Semana 2: validar mejoras con revisión comercial y ajuste de hipótesis.",
+        "Semana 3-4: escalar solo lo que demuestra tracción y rentabilidad."
       ]
     };
   }
 
-  if (total <= 35) {
+  if (total <= 30) {
     return {
-      headline: "Ya generas movimiento, pero el crecimiento todavía no es controlable.",
-      diagnosticoPrincipal: "Negocio inconsistente con cuellos de botella en ejecución.",
-      problemaDetectado: `La dimensión más débil es ${weakest.key.toLowerCase()}, frenando resultados estables.`,
-      causaRaiz: "Decisiones tácticas sin sistema operativo comercial unificado.",
-      estrategiaRecomendada: "Estandarizar adquisición y seguimiento para estabilizar ingresos.",
-      planAccion: [
-        "Elegir 1 canal principal y definir objetivo semanal por etapa del embudo.",
-        "Crear rutina de seguimiento a prospectos con tiempos y mensajes definidos.",
-        "Optimizar pitch comercial orientado a problema, impacto y siguiente paso.",
-        "Bloquear revisión estratégica semanal con métricas de conversión."
+      headline: "Tu negocio necesita ordenar su sistema comercial antes de escalar.",
+      problema: "Baja previsibilidad de resultados.",
+      impacto: "Ingresos variables y decisiones reactivas.",
+      causa: "No existe un proceso unificado de adquisición y conversión.",
+      consecuencia: "Crecimiento intermitente y desgaste operativo.",
+      estrategia: [
+        "Construir una propuesta de valor concreta por segmento.",
+        "Estandarizar secuencia de seguimiento comercial.",
+        "Instalar revisión semanal de métricas base."
       ],
-      proInsights: [
-        "Mapa de priorización 80/20 para cortar acciones de bajo retorno.",
-        "Sistema de scoring de leads para enfocar tiempo en oportunidades de mayor valor.",
-        "Plan de ejecución 30-60-90 días para mejorar previsibilidad de ingresos."
-      ]
-    };
-  }
-
-  if (total <= 50) {
-    return {
-      headline: "Tienes una base sólida; ahora el objetivo es convertir estructura en crecimiento acelerado.",
-      diagnosticoPrincipal: "Negocio estructurado con oportunidad clara de expansión.",
-      problemaDetectado: "El sistema actual funciona, pero no escala al ritmo del potencial.",
-      causaRaiz: "Procesos parcialmente documentados y decisiones aún muy dependientes del fundador.",
-      estrategiaRecomendada: "Fortalecer automatización y delegación para liberar capacidad de crecimiento.",
-      planAccion: [
-        "Documentar los 3 procesos comerciales críticos con responsables y tiempos.",
-        "Automatizar seguimiento de leads y reportes semanales de desempeño.",
-        "Definir oferta de mayor ticket o mayor recurrencia para elevar margen.",
-        "Planificar expansión de canal secundario con meta trimestral concreta."
-      ],
-      proInsights: [
-        "Arquitectura de escalamiento comercial para reducir dependencia operativa.",
-        "Modelo de unit economics simplificado para decidir inversión en adquisición.",
-        "Playbook de delegación para líderes de venta/operación."
+      ejecucion: [
+        "Diseñar guion de ventas y objeciones clave.",
+        "Implementar CRM mínimo para trazabilidad.",
+        "Definir KPI por etapa del embudo."
       ]
     };
   }
 
   return {
-    headline: "Estás en posición de escalar con ventaja si proteges foco y disciplina estratégica.",
-    diagnosticoPrincipal: "Negocio escalable con fundamentos competitivos.",
-    problemaDetectado: "El reto ya no es iniciar: es sostener crecimiento rentable sin perder control.",
-    causaRaiz: "Riesgo de dispersión por expansión sin priorización estratégica rigurosa.",
-    estrategiaRecomendada: "Consolidar sistema de decisiones y ejecutar expansión por fases.",
-    planAccion: [
-      "Definir objetivo trimestral único de crecimiento y criterio de prioridad.",
-      "Crear tablero ejecutivo con CAC, conversión y margen por canal.",
-      "Activar plan de expansión en 2 fases con hitos y supuestos medibles.",
-      "Instalar ritual de dirección semanal para decisiones basadas en datos."
+    headline: "Tienes base para crecer: el siguiente reto es escalar sin perder control.",
+    problema: "Cuello de botella en escalabilidad operativa.",
+    impacto: "Mayor volumen sin sistema puede reducir margen y calidad.",
+    causa: "Procesos críticos no completamente automatizados ni delegables.",
+    consecuencia: "Límite de crecimiento por dependencia del equipo fundador.",
+    estrategia: [
+      "Priorizar automatización de procesos comerciales repetitivos.",
+      "Diversificar canales con criterios claros de rentabilidad.",
+      "Fortalecer gobierno de decisiones con indicadores semanales."
     ],
-    proInsights: [
-      "Blueprint de expansión rentable por canal y segmento.",
-      "Matriz de riesgos de escalamiento con gatillos de decisión.",
-      "Modelo de gobierno comercial para sostener crecimiento sin caos operativo."
+    ejecucion: [
+      "Establecer roadmap 30-60-90 de escalamiento.",
+      "Asignar responsables por KPI de canal.",
+      "Activar ritual ejecutivo semanal para decisiones rápidas."
     ]
   };
 }
@@ -115,30 +94,33 @@ function buildStrategicReport(scores: ACAEScore): StrategicReport {
 export default function ResultsPage() {
   const [scores, setScores] = useState<ACAEScore | null>(null);
   const [plan, setPlan] = useState<PlanType>("free");
-  const [showUpgrade, setShowUpgrade] = useState(false);
+  const [dynamicContext, setDynamicContext] = useState<DynamicContext | null>(null);
 
   useEffect(() => {
     const state = getGrowthState();
     const latest = getLatestDiagnostic(state);
     setScores(latest?.score ?? null);
     setPlan(state.plan);
+
+    const raw = localStorage.getItem("acae_dynamic_context");
+    if (raw) {
+      try {
+        setDynamicContext(JSON.parse(raw) as DynamicContext);
+      } catch {
+        setDynamicContext(null);
+      }
+    }
   }, []);
 
-  const report = useMemo(() => (scores ? buildStrategicReport(scores) : null), [scores]);
+  const report = useMemo(() => (scores ? buildStrategicReport(scores, dynamicContext) : null), [scores, dynamicContext]);
   const isPro = plan === "pro";
-
-  const handleMockUpgrade = () => {
-    const next = updatePlan("pro");
-    setPlan(next.plan);
-    setShowUpgrade(false);
-  };
 
   if (!scores || !report) {
     return (
       <main className="py-14">
         <Container className="rounded-xl border border-slate-200 bg-white p-8 text-center shadow-soft">
           <h1 className="text-2xl font-semibold text-slate-900">No hay resultados disponibles</h1>
-          <p className="mt-2 text-slate-600">Primero completa el diagnóstico para obtener tu reporte.</p>
+          <p className="mt-2 text-slate-600">Completa el wizard para obtener tu diagnóstico.</p>
           <Link href="/diagnostic" className="mt-5 inline-flex rounded-lg bg-brand-600 px-5 py-3 text-white">
             Ir al diagnóstico
           </Link>
@@ -151,12 +133,12 @@ export default function ResultsPage() {
     <main className="py-10 md:py-14">
       <Container className="space-y-8">
         <header className="rounded-2xl border border-brand-100 bg-gradient-to-r from-brand-50 to-white p-6 shadow-soft">
-          <p className="text-sm font-semibold uppercase tracking-wide text-brand-700">Resultado estratégico ACAE</p>
+          <p className="text-sm font-semibold uppercase tracking-wide text-brand-700">Diagnóstico final ACAE</p>
           <h1 className="mt-2 text-3xl font-bold text-slate-900">{report.headline}</h1>
           <p className="mt-2 text-slate-700">
             {isPro
-              ? "Modo PRO activo: estás viendo un diagnóstico accionable de nivel ejecutivo."
-              : "Plan básico activo: aquí tienes una visión clara para decidir tu siguiente movimiento."}
+              ? "Modo PRO: estrategia y ejecución desbloqueadas."
+              : "Modo FREE: ves diagnóstico principal. Desbloquea PRO para plan completo."}
           </p>
         </header>
 
@@ -167,94 +149,78 @@ export default function ResultsPage() {
 
         <section className="grid gap-4 rounded-xl border border-slate-200 bg-white p-6 shadow-soft md:grid-cols-2">
           <article>
-            <h2 className="text-lg font-semibold text-slate-900">Diagnóstico principal</h2>
-            <p className="mt-2 text-slate-700">{report.diagnosticoPrincipal}</p>
+            <h2 className="text-lg font-semibold text-slate-900">Problema</h2>
+            <p className="mt-2 text-slate-700">{report.problema}</p>
           </article>
           <article>
-            <h2 className="text-lg font-semibold text-slate-900">Problema detectado</h2>
-            <p className="mt-2 text-slate-700">{report.problemaDetectado}</p>
+            <h2 className="text-lg font-semibold text-slate-900">Impacto</h2>
+            <p className="mt-2 text-slate-700">{report.impacto}</p>
           </article>
           <article>
-            <h2 className="text-lg font-semibold text-slate-900">Causa raíz</h2>
-            <p className="mt-2 text-slate-700">{report.causaRaiz}</p>
+            <h2 className="text-lg font-semibold text-slate-900">Causa</h2>
+            <p className="mt-2 text-slate-700">{report.causa}</p>
           </article>
           <article>
-            <h2 className="text-lg font-semibold text-slate-900">Estrategia recomendada</h2>
-            <p className="mt-2 text-slate-700">{report.estrategiaRecomendada}</p>
+            <h2 className="text-lg font-semibold text-slate-900">Consecuencia</h2>
+            <p className="mt-2 text-slate-700">{report.consecuencia}</p>
           </article>
         </section>
 
-        <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-soft">
-          <h2 className="text-xl font-semibold text-slate-900">Plan de acción en pasos</h2>
-          <ol className="mt-4 space-y-3">
-            {report.planAccion.map((step, index) => (
-              <li key={step} className="flex gap-3 rounded-lg border border-slate-100 bg-slate-50 p-3 text-slate-700">
-                <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-brand-600 text-xs font-bold text-white">
-                  {index + 1}
-                </span>
-                <span>{step}</span>
-              </li>
-            ))}
-          </ol>
-        </section>
-
-        <section className="rounded-xl border border-brand-200 bg-brand-50/60 p-6 shadow-soft">
-          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-            <div>
-              <h2 className="text-xl font-semibold text-slate-900">Mejorar resultado</h2>
-              <p className="mt-1 text-slate-700">
-                {isPro
-                  ? "Tu reporte PRO ya está activo con recomendaciones más profundas para ejecución."
-                  : "Desbloquea el plan completo para obtener prioridades avanzadas, profundidad estratégica y ruta de implementación."}
-              </p>
-            </div>
-            {!isPro && (
+        {!isPro ? (
+          <section className="rounded-xl border border-brand-200 bg-brand-50 p-6 shadow-soft">
+            <h2 className="text-xl font-semibold text-slate-900">Desbloquea estrategia + ejecución</h2>
+            <p className="mt-2 text-slate-700">
+              Con PRO accedes a plan estratégico de implementación, prioridades por fase y guía de ejecución semanal.
+            </p>
+            <div className="mt-4 flex flex-wrap gap-3">
               <button
                 type="button"
-                onClick={() => setShowUpgrade((current) => !current)}
-                className="inline-flex items-center justify-center rounded-lg bg-brand-600 px-5 py-3 font-semibold text-white hover:bg-brand-700"
+                onClick={() => {
+                  const next = updatePlan("pro");
+                  setPlan(next.plan);
+                }}
+                className="rounded-lg bg-brand-600 px-5 py-3 font-semibold text-white hover:bg-brand-700"
               >
                 Obtener plan completo
               </button>
-            )}
-          </div>
-
-          {(isPro || showUpgrade) && (
-            <div className="mt-5 rounded-xl border border-brand-200 bg-white p-5">
-              <h3 className="text-lg font-semibold text-slate-900">Contenido PRO</h3>
+              <button
+                type="button"
+                onClick={() => {
+                  const next = updatePlan("pro");
+                  setPlan(next.plan);
+                }}
+                className="rounded-lg border border-slate-300 bg-white px-5 py-3 font-semibold text-slate-800 hover:bg-slate-100"
+              >
+                Pagar con Stripe o pago local (mock)
+              </button>
+            </div>
+          </section>
+        ) : (
+          <>
+            <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-soft">
+              <h2 className="text-xl font-semibold text-slate-900">Estrategia</h2>
               <ul className="mt-3 list-disc space-y-2 pl-6 text-slate-700">
-                {report.proInsights.map((insight) => (
-                  <li key={insight}>{insight}</li>
+                {report.estrategia.map((item) => (
+                  <li key={item}>{item}</li>
                 ))}
               </ul>
+            </section>
 
-              {!isPro && (
-                <div className="mt-5 space-y-3 rounded-lg border border-slate-200 bg-slate-50 p-4">
-                  <p className="text-sm font-medium text-slate-900">Punto de pago (mock)</p>
-                  <p className="text-sm text-slate-700">
-                    Preparado para Stripe o pasarela local. Este flujo simula la activación del plan PRO dentro del sistema.
-                  </p>
-                  <div className="flex flex-wrap gap-3">
-                    <button
-                      type="button"
-                      onClick={handleMockUpgrade}
-                      className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800"
-                    >
-                      Pagar con Stripe (mock)
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleMockUpgrade}
-                      className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-800 hover:bg-slate-100"
-                    >
-                      Pago local (mock)
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-        </section>
+            <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-soft">
+              <h2 className="text-xl font-semibold text-slate-900">Ejecución</h2>
+              <ol className="mt-3 space-y-2 text-slate-700">
+                {report.ejecucion.map((step, idx) => (
+                  <li key={step} className="flex gap-3 rounded-lg bg-slate-50 p-3">
+                    <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-brand-600 text-xs font-bold text-white">
+                      {idx + 1}
+                    </span>
+                    <span>{step}</span>
+                  </li>
+                ))}
+              </ol>
+            </section>
+          </>
+        )}
       </Container>
     </main>
   );
