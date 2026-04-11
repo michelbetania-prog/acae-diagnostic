@@ -57,6 +57,23 @@ export interface StrategicAnalysisResult {
   plan: StrategicPlan;
 }
 
+export type StrategicScenario =
+  | "SIN_VENTAS"
+  | "TRAFICO_SIN_CONVERSION"
+  | "VENTAS_INCONSISTENTES"
+  | "DEPENDENCIA_REFERIDOS"
+  | "MUCHA_AUDIENCIA_POCA_VENTA"
+  | "ESCALAR";
+
+export interface ScenarioInput {
+  ventas: number;
+  trafico: number;
+  conversion: number;
+  ventas_irregulares: boolean;
+  origen: string;
+  seguidores: number;
+}
+
 // ============================================
 // SECCIÓN 2: Funciones del motor estratégico
 // ============================================
@@ -67,6 +84,27 @@ function clamp(value: number, min: number, max: number): number {
 
 function addPoints(current: number, points: number): number {
   return clamp(current + points, 0, 15);
+}
+
+/**
+ * Detecta el escenario comercial actual para orientar la prioridad estratégica.
+ */
+export function detectarEscenario(input: ScenarioInput): StrategicScenario {
+  if (input.ventas === 0) return "SIN_VENTAS";
+
+  if (input.trafico > 1000 && input.conversion < 1) {
+    return "TRAFICO_SIN_CONVERSION";
+  }
+
+  if (input.ventas_irregulares) return "VENTAS_INCONSISTENTES";
+
+  if (input.origen === "referidos") return "DEPENDENCIA_REFERIDOS";
+
+  if (input.seguidores > 10000 && input.ventas < 10) {
+    return "MUCHA_AUDIENCIA_POCA_VENTA";
+  }
+
+  return "ESCALAR";
 }
 
 /**
