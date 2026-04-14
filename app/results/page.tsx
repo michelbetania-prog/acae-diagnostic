@@ -6,7 +6,7 @@ import { Container } from "@/components/Container";
 import { RadarChart } from "@/components/RadarChart";
 import { ResultSummary } from "@/components/ResultSummary";
 import { ACAEScore } from "@/lib/calculateACAE";
-import { PlanType, getGrowthState, getLatestDiagnostic, updatePlan } from "@/lib/growthSystem";
+import { DiagnosticResult, PlanType, getGrowthState, getLatestDiagnostic, updatePlan } from "@/lib/growthSystem";
 
 type DynamicContext = {
   flow: "VALIDACION" | "CONVERSION" | "ESCALA" | "CAOS" | "flujoOferta" | "flujoSeguimiento" | "flujoConversion" | "flujoEscala";
@@ -27,6 +27,25 @@ type StrategicReport = {
   consecuencia: string;
   estrategia: string[];
   ejecucion: string[];
+};
+
+type AiAction = {
+  accion: string;
+  por_que: string;
+  como_hacerlo: string[];
+  resultado_esperado: string;
+};
+
+type AiDiagnostic = {
+  diagnostico: string;
+  problemas_criticos: string[];
+  oportunidades: string[];
+  acciones: AiAction[];
+  estructuras_internas?: Array<{
+    recomendacion: string;
+    cuando_aplicar: string;
+    version_simple: string;
+  }>;
 };
 
 function buildStrategicReport(scores: ACAEScore, dynamic: DynamicContext | null): StrategicReport {
@@ -93,13 +112,18 @@ function buildStrategicReport(scores: ACAEScore, dynamic: DynamicContext | null)
 
 export default function ResultsPage() {
   const [scores, setScores] = useState<ACAEScore | null>(null);
+  const [latestDiagnostic, setLatestDiagnostic] = useState<DiagnosticResult | null>(null);
   const [plan, setPlan] = useState<PlanType>("free");
   const [dynamicContext, setDynamicContext] = useState<DynamicContext | null>(null);
+  const [aiDiagnostic, setAiDiagnostic] = useState<AiDiagnostic | null>(null);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
 
   useEffect(() => {
     const state = getGrowthState();
     const latest = getLatestDiagnostic(state);
     setScores(latest?.score ?? null);
+    setLatestDiagnostic(latest);
     setPlan(state.plan);
 
     const raw = localStorage.getItem("acae_dynamic_context");
@@ -111,6 +135,37 @@ export default function ResultsPage() {
       }
     }
   }, []);
+
+  useEffect(() => {
+    const fetchAiDiagnostic = async () => {
+      if (!latestDiagnostic || !scores) return;
+      setAiLoading(true);
+      setAiError(null);
+
+      const response = await fetch("/api/openai/diagnose", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          answers: latestDiagnostic.answers,
+          score: latestDiagnostic.score,
+          context: dynamicContext ?? {}
+        })
+      });
+
+      if (!response.ok) {
+        const payload = (await response.json()) as { error?: string; detail?: string };
+        setAiError(payload.error ?? "No se pudo generar diagnóstico IA.");
+        setAiLoading(false);
+        return;
+      }
+
+      const payload = (await response.json()) as AiDiagnostic;
+      setAiDiagnostic(payload);
+      setAiLoading(false);
+    };
+
+    fetchAiDiagnostic();
+  }, [latestDiagnostic, scores, dynamicContext]);
 
   const report = useMemo(() => (scores ? buildStrategicReport(scores, dynamicContext) : null), [scores, dynamicContext]);
   const isPro = plan === "pro";
@@ -221,6 +276,73 @@ export default function ResultsPage() {
             </section>
           </>
         )}
+
+        <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-soft">
+          <h2 className="text-xl font-semibold text-slate-900">Diagnóstico estratégico con IA</h2>
+          {aiLoading && <p className="mt-2 text-slate-600">Generando análisis profundo...</p>}
+          {aiError && <p className="mt-2 text-amber-700">{aiError}</p>}
+
+          {aiDiagnostic && (
+            <div className="mt-4 space-y-5">
+              <article>
+                <h3 className="font-semibold text-slate-900">Diagnóstico</h3>
+                <p className="mt-1 text-slate-700">{aiDiagnostic.diagnostico}</p>
+              </article>
+
+              <article>
+                <h3 className="font-semibold text-slate-900">Problemas críticos</h3>
+                <ul className="mt-1 list-disc space-y-1 pl-5 text-slate-700">
+                  {aiDiagnostic.problemas_criticos.map((problem) => (
+                    <li key={problem}>{problem}</li>
+                  ))}
+                </ul>
+              </article>
+
+              <article>
+                <h3 className="font-semibold text-slate-900">Oportunidades</h3>
+                <ul className="mt-1 list-disc space-y-1 pl-5 text-slate-700">
+                  {aiDiagnostic.oportunidades.map((item) => (
+                    <li key={item}>{item}</li>
+                  ))}
+                </ul>
+              </article>
+
+              <article>
+                <h3 className="font-semibold text-slate-900">Acciones paso a paso</h3>
+                <div className="mt-2 space-y-3">
+                  {aiDiagnostic.acciones.map((action) => (
+                    <div key={action.accion} className="rounded-lg border border-brand-100 bg-brand-50 p-4">
+                      <p className="font-semibold text-slate-900">Acción: {action.accion}</p>
+                      <p className="mt-1 text-sm text-slate-700"><span className="font-semibold">Por qué:</span> {action.por_que}</p>
+                      <p className="mt-2 text-sm font-semibold text-slate-800">Cómo hacerlo:</p>
+                      <ol className="mt-1 list-decimal space-y-1 pl-5 text-sm text-slate-700">
+                        {action.como_hacerlo.map((step) => (
+                          <li key={step}>{step}</li>
+                        ))}
+                      </ol>
+                      <p className="mt-2 text-sm text-slate-700"><span className="font-semibold">Resultado esperado:</span> {action.resultado_esperado}</p>
+                    </div>
+                  ))}
+                </div>
+              </article>
+
+              {aiDiagnostic.estructuras_internas && aiDiagnostic.estructuras_internas.length > 0 && (
+                <article>
+                  <h3 className="font-semibold text-slate-900">Recomendaciones de estructura interna</h3>
+                  <div className="mt-2 space-y-2">
+                    {aiDiagnostic.estructuras_internas.map((item) => (
+                      <div key={item.recomendacion} className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm">
+                        <p className="font-semibold text-slate-900">{item.recomendacion}</p>
+                        <p className="text-slate-700"><span className="font-semibold">Cuándo aplicarlo:</span> {item.cuando_aplicar}</p>
+                        <p className="text-slate-700"><span className="font-semibold">Versión simple:</span> {item.version_simple}</p>
+                      </div>
+                    ))}
+                  </div>
+                </article>
+              )}
+            </div>
+          )}
+        </section>
       </Container>
     </main>
   );
