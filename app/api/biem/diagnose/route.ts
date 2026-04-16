@@ -82,4 +82,41 @@ Devuelve SOLO JSON con:
   } catch (error) {
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
-}
+}{ai && (
+  <div style={{ marginTop: "40px", padding: "20px", background: "#ffffff", borderRadius: "12px" }}>
+    <h2>Diagnóstico Estratégico</h2>
+
+    <p>{ai.diagnostico}</p>
+
+    <h3>Problemas críticos</h3>
+    <ul>
+      {ai.problemas_criticos?.map((p: string, i: number) => (
+        <li key={i}>{p}</li>
+      ))}
+    </ul>
+
+    <h3>Oportunidades</h3>
+    <ul>
+      {ai.oportunidades?.map((o: string, i: number) => (
+        <li key={i}>{o}</li>
+      ))}
+    </ul>
+
+    <h3>Acciones</h3>
+    {ai.acciones?.map((a: any, i: number) => (
+      <div key={i} style={{ marginBottom: "20px" }}>
+        <strong>{a.accion}</strong>
+
+        <p><b>Por qué:</b> {a.por_que}</p>
+
+        <ul>
+          {a.como_hacerlo?.map((c: string, j: number) => (
+            <li key={j}>{c}</li>
+          ))}
+        </ul>
+
+        <p><b>Resultado esperado:</b> {a.resultado_esperado}</p>
+      </div>
+    ))}
+  </div>
+)}
