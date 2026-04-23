@@ -26,9 +26,9 @@ const navItems = [
 
 const COLOR = {
   white: "#FFFFFF",
-  nightIndigo: "#1B003F",
+  nightIndigo: "#371e68",
   twilightPurple: "#4B0082",
-  midnightBlue: "#191970",
+  midnightBlue: "#371e68",
   burntOrange: "#C46A2D"
 };
 
@@ -101,10 +101,10 @@ export default function DashboardPage() {
           </header>
 
           <section className="grid gap-6 xl:grid-cols-[1.1fr_1fr]">
-            <article className="rounded-2xl border border-slate-200 bg-white p-6 shadow-soft">
+            <article className="rounded-2xl border border-brand-100 bg-white p-6 shadow-soft">
               <p className="text-sm font-medium" style={{ color: COLOR.midnightBlue }}>ACAE SCORE</p>
               <p className="mt-2 text-5xl font-bold" style={{ color: COLOR.nightIndigo }}>{growthPercent}%</p>
-              <div className="mt-4 h-3 overflow-hidden rounded-full bg-slate-100">
+              <div className="mt-4 h-3 overflow-hidden rounded-full bg-lavender-100">
                 <div
                   className="h-full rounded-full"
                   style={{ width: `${growthPercent}%`, backgroundColor: COLOR.twilightPurple }}
@@ -112,16 +112,16 @@ export default function DashboardPage() {
               </div>
 
               <div className="mt-5 grid gap-3 sm:grid-cols-2">
-                <div className="rounded-lg bg-slate-50 p-3 text-sm" style={{ color: COLOR.midnightBlue }}>
+                <div className="rounded-lg bg-lavender-100 p-3 text-sm" style={{ color: COLOR.midnightBlue }}>
                   Atracción: {radarScores.atraccion}/15
                 </div>
-                <div className="rounded-lg bg-slate-50 p-3 text-sm" style={{ color: COLOR.midnightBlue }}>
+                <div className="rounded-lg bg-lavender-100 p-3 text-sm" style={{ color: COLOR.midnightBlue }}>
                   Conversión: {radarScores.conversion}/15
                 </div>
-                <div className="rounded-lg bg-slate-50 p-3 text-sm" style={{ color: COLOR.midnightBlue }}>
+                <div className="rounded-lg bg-lavender-100 p-3 text-sm" style={{ color: COLOR.midnightBlue }}>
                   Automatización: {radarScores.autoridad}/15
                 </div>
-                <div className="rounded-lg bg-slate-50 p-3 text-sm" style={{ color: COLOR.midnightBlue }}>
+                <div className="rounded-lg bg-lavender-100 p-3 text-sm" style={{ color: COLOR.midnightBlue }}>
                   Escala: {radarScores.escalabilidad}/15
                 </div>
               </div>
@@ -130,7 +130,7 @@ export default function DashboardPage() {
             <RadarChart scores={radarScores} />
           </section>
 
-          <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-soft">
+          <section className="rounded-2xl border border-brand-100 bg-white p-6 shadow-soft">
             <h2 className="text-xl font-semibold" style={{ color: COLOR.nightIndigo }}>FOCO ESTRATÉGICO</h2>
             <p className="mt-2 text-sm" style={{ color: COLOR.midnightBlue }}>
               Dimensión prioritaria: <strong>{latest?.weakestDimension ?? "Pendiente de diagnóstico"}</strong>
@@ -141,17 +141,17 @@ export default function DashboardPage() {
           </section>
 
           <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-soft">
+            <article className="rounded-2xl border border-brand-100 bg-white p-5 shadow-soft">
               <p className="text-sm" style={{ color: COLOR.midnightBlue }}>Progreso de tareas</p>
               <p className="mt-2 text-2xl font-bold" style={{ color: COLOR.nightIndigo }}>{taskProgress}%</p>
               <p className="mt-1 text-sm text-slate-500">Tareas completadas sobre total</p>
             </article>
-            <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-soft">
+            <article className="rounded-2xl border border-brand-100 bg-white p-5 shadow-soft">
               <p className="text-sm" style={{ color: COLOR.midnightBlue }}>Tareas activas</p>
               <p className="mt-2 text-2xl font-bold" style={{ color: COLOR.nightIndigo }}>{activeTasks}</p>
               <p className="mt-1 text-sm text-slate-500">Pendientes del plan actual</p>
             </article>
-            <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-soft">
+            <article className="rounded-2xl border border-brand-100 bg-white p-5 shadow-soft">
               <p className="text-sm" style={{ color: COLOR.midnightBlue }}>Próximo diagnóstico</p>
               <p className="mt-2 text-xl font-bold" style={{ color: COLOR.nightIndigo }}>
                 {diagnosticPermission.allowed
@@ -160,7 +160,7 @@ export default function DashboardPage() {
               </p>
               <p className="mt-1 text-sm text-slate-500">Restantes en plan: {diagnosticPermission.remaining}</p>
             </article>
-            <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-soft">
+            <article className="rounded-2xl border border-brand-100 bg-white p-5 shadow-soft">
               <p className="text-sm" style={{ color: COLOR.midnightBlue }}>Sesiones estratégicas</p>
               <p className="mt-2 text-2xl font-bold" style={{ color: COLOR.nightIndigo }}>{sessions}</p>
               <p className="mt-1 text-sm text-slate-500">Disponibles según tu plan</p>

@@ -43,6 +43,7 @@ export type ActionPlanAdvanced = ActionPlanBase & {
 export type DiagnosticRecord = {
   id: string;
   createdAt: string;
+  kind: "initial" | "followup";
   answers: Record<number, number>;
   score: ACAEScore;
   weakestDimension: string;

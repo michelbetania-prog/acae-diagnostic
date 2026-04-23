@@ -3,110 +3,294 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Container } from "@/components/Container";
-import { ProgressBar } from "@/components/ProgressBar";
-import { QuestionCard } from "@/components/QuestionCard";
-import { questions } from "@/lib/questions";
+import { canRunDiagnostic, getGrowthState, isBuilderMode, runDiagnostic } from "@/lib/growthSystem";
 import {
-  PlanType,
-  canRunDiagnostic,
-  getGrowthState,
-  getPlanLimit,
-  runDiagnostic,
-  updatePlan
-} from "@/lib/growthSystem";
+  BrainQuestion,
+  BrainState,
+  buildSystemReply,
+  canGenerateStrategicOutput,
+  createInitialBrainState,
+  getStrategicDiagnosis,
+  getBrainProgress,
+  getDiagnosticStepOutline,
+  getNextQuestion,
+  mapBrainToAcaeAnswers,
+  registerAnswer,
+  validateResponse
+} from "@/lib/acae-brain";
 
 export default function DiagnosticPage() {
   const router = useRouter();
-  const [answers, setAnswers] = useState<Record<number, number>>({});
-  const [plan, setPlan] = useState<PlanType>("free");
-  const [limitText, setLimitText] = useState(1);
-  const [message, setMessage] = useState<string>("");
+  const [brain, setBrain] = useState<BrainState>(createInitialBrainState());
+  const [currentQuestion, setCurrentQuestion] = useState<BrainQuestion | null>(null);
+  const [selectedScore, setSelectedScore] = useState<number | null>(null);
+  const [userNote, setUserNote] = useState("");
+  const [message, setMessage] = useState("");
+  const [feedback, setFeedback] = useState("Inicia respondiendo con claridad para activar diagnóstico estratégico.");
+  const [builderMode, setBuilderMode] = useState(false);
+  const [businessType, setBusinessType] = useState<"servicios" | "productos" | "mixto">("servicios");
 
   useEffect(() => {
     const state = getGrowthState();
-    setPlan(state.plan);
-    setLimitText(getPlanLimit(state.plan));
-    const permission = canRunDiagnostic(state);
-    if (!permission.allowed) {
-      const next = permission.nextDate ? permission.nextDate.toLocaleDateString("es-ES") : "-";
-      setMessage(`Límite alcanzado o en espera. Próximo diagnóstico disponible: ${next}`);
+    const isBuilder = isBuilderMode(state);
+    setBuilderMode(isBuilder);
+
+    if (!isBuilder) {
+      const permission = canRunDiagnostic(state);
+      if (!permission.allowed) {
+        const next = permission.nextDate ? permission.nextDate.toLocaleDateString("es-ES") : "-";
+        setMessage(`Próximo diagnóstico disponible: ${next}`);
+      }
     }
+
+    const first = getNextQuestion(createInitialBrainState());
+    setCurrentQuestion(first);
   }, []);
 
-  const completed = useMemo(() => Object.keys(answers).length, [answers]);
-  const progress = Math.round((completed / questions.length) * 100);
+  const progress = useMemo(() => getBrainProgress(brain), [brain]);
+  const percent = progress.total ? Math.round((progress.asked / progress.total) * 100) : 0;
+  const stepOutline = useMemo(() => getDiagnosticStepOutline(), []);
+  const outputGate = useMemo(() => canGenerateStrategicOutput(brain), [brain]);
 
-  const handleSelect = (id: number, value: number) => {
-    setAnswers((prev) => ({ ...prev, [id]: value }));
+  const getStepStatus = (stepId: string) => {
+    if (brain.askedQuestionIds.includes(stepId)) return "completed";
+    if (currentQuestion?.id === stepId) return "active";
+    return "pending";
   };
 
-  const handlePlanChange = (value: PlanType) => {
-    setPlan(value);
-    const state = updatePlan(value);
-    setLimitText(getPlanLimit(state.plan));
-    const permission = canRunDiagnostic(state);
-    if (!permission.allowed) {
-      const next = permission.nextDate ? permission.nextDate.toLocaleDateString("es-ES") : "-";
-      setMessage(`No disponible por ahora. Próximo diagnóstico: ${next}`);
+  const submitCurrentAnswer = () => {
+    if (!currentQuestion || selectedScore === null) return;
+
+    const note = userNote.trim();
+    const quality = validateResponse(selectedScore, note);
+    if (!quality.valid) {
+      setMessage(quality.reason ?? "Respuesta inválida.");
       return;
     }
+
+    const nextBrain = registerAnswer(brain, currentQuestion, selectedScore, note || undefined);
+    const systemReply = buildSystemReply(nextBrain);
+    const nextQuestion = getNextQuestion(nextBrain);
+
+    setBrain(nextBrain);
+    setCurrentQuestion(nextQuestion);
+    setSelectedScore(null);
+    setUserNote("");
+    setFeedback(systemReply);
     setMessage("");
   };
 
-  const handleSubmit = () => {
-    if (completed !== questions.length) return;
-    const result = runDiagnostic(answers);
-    if (!result.created) {
+  const skipStep = () => {
+    if (!builderMode || !currentQuestion) return;
+    const nextBrain = registerAnswer(brain, currentQuestion, 3, "Paso saltado en modo prueba");
+    setBrain(nextBrain);
+    setCurrentQuestion(getNextQuestion(nextBrain));
+    setFeedback("Paso saltado en Modo Prueba.");
+  };
+
+  const resetDiagnostic = () => {
+    const initial = createInitialBrainState();
+    setBrain(initial);
+    setCurrentQuestion(getNextQuestion(initial));
+    setSelectedScore(null);
+    setUserNote("");
+    setMessage("");
+    setFeedback("Diagnóstico reiniciado en Modo Prueba.");
+  };
+
+  const finishDiagnostic = () => {
+    const gateResult = canGenerateStrategicOutput(brain);
+    if (!gateResult.allowed) {
+      setMessage(gateResult.reason ?? "Falta validar información crítica.");
+      return;
+    }
+
+    const acaeAnswers = mapBrainToAcaeAnswers(brain);
+    const result = runDiagnostic(acaeAnswers);
+    if (!result.created && !builderMode) {
       const next = result.permission.nextDate ? result.permission.nextDate.toLocaleDateString("es-ES") : "-";
       setMessage(`No puedes ejecutar otro diagnóstico todavía. Próxima fecha: ${next}`);
       return;
     }
+
+    const diagnosis = getStrategicDiagnosis(brain);
+    const nivel = diagnosis.gravedad === "alto" ? "desordenado" : diagnosis.gravedad === "medio" ? "transicion" : "estructurado";
+
+    localStorage.setItem(
+      "acae_dynamic_context",
+      JSON.stringify({
+        flow: diagnosis.patron,
+        context: "INICIAL",
+        tipo_negocio: businessType,
+        nivel,
+        problema: diagnosis.patron,
+        realtime: {
+          mainProblem: diagnosis.problema,
+          impact: `Gravedad detectada: ${diagnosis.gravedad}`,
+          rootCause: diagnosis.accion,
+          consequence: "Si no se ejecuta la acción recomendada, el patrón se mantendrá activo."
+        }
+      })
+    );
+
     router.push("/results");
   };
 
   return (
     <main className="py-10 md:py-14">
-      <Container className="space-y-8">
-        <header className="space-y-3">
-          <h1 className="text-3xl font-bold text-slate-900">Diagnóstico ACAE</h1>
-          <p className="text-slate-600">Responde cada pregunta en una escala de 1 (bajo) a 5 (alto).</p>
-          <div className="flex flex-wrap items-center gap-3 rounded-lg border border-slate-200 bg-white p-3">
-            <label className="text-sm font-medium text-slate-700" htmlFor="plan">Plan:</label>
-            <select
-              id="plan"
-              value={plan}
-              onChange={(e) => handlePlanChange(e.target.value as PlanType)}
-              className="rounded-md border border-slate-300 px-3 py-1 text-sm"
-            >
-              <option value="free">Free</option>
-              <option value="standard">Standard</option>
-              <option value="pro">Pro</option>
-            </select>
-            <span className="text-sm text-slate-600">Diagnósticos totales permitidos: {limitText}</span>
+      <Container className="space-y-4">
+        <header className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-brand-100 bg-white p-5 shadow-soft">
+          <div>
+            <h1 className="text-2xl font-bold text-slate-900">Onboarding Diagnóstico ACAE</h1>
+            <p className="text-sm text-slate-600">Experiencia guiada: una pregunta a la vez, feedback inmediato y validación estricta.</p>
           </div>
-          {message ? <p className="text-sm font-medium text-amber-700">{message}</p> : null}
+          {builderMode && <span className="rounded-full bg-brand-600 px-3 py-1 text-xs font-semibold text-white">Modo Prueba</span>}
         </header>
 
-        <ProgressBar progress={progress} completed={completed} total={questions.length} />
-
-        <section className="space-y-4">
-          {questions.map((question) => (
-            <QuestionCard
-              key={question.id}
-              question={question}
-              value={answers[question.id]}
-              onSelect={handleSelect}
-            />
-          ))}
+        <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-soft">
+          <label className="text-sm font-medium text-slate-700" htmlFor="business-type">Tipo de negocio</label>
+          <select
+            id="business-type"
+            value={businessType}
+            onChange={(event) => setBusinessType(event.target.value as "servicios" | "productos" | "mixto")}
+            className="mt-2 rounded-md border border-slate-300 px-3 py-2 text-sm"
+          >
+            <option value="servicios">Servicios</option>
+            <option value="productos">Productos</option>
+            <option value="mixto">Mixto</option>
+          </select>
         </section>
 
-        <button
-          onClick={handleSubmit}
-          disabled={completed !== questions.length}
-          className="rounded-lg bg-brand-600 px-6 py-3 font-semibold text-white transition enabled:hover:bg-brand-700 disabled:cursor-not-allowed disabled:bg-slate-400"
-        >
-          Ver resultados
-        </button>
+        <section className="grid gap-6 lg:grid-cols-[360px_1fr]">
+          <aside className="space-y-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-soft">
+            <div>
+              <p className="text-sm font-semibold text-slate-900">Progreso</p>
+              <div className="mt-2 h-2 rounded-full bg-slate-200">
+                <div className="h-full rounded-full bg-brand-600 transition-all" style={{ width: `${percent}%` }} />
+              </div>
+              <p className="mt-2 text-xs text-slate-600">{progress.asked}/{progress.total} pasos</p>
+            </div>
+
+            <div className="max-h-[420px] space-y-2 overflow-y-auto pr-1">
+              {stepOutline.map((step, index) => {
+                const status = getStepStatus(step.id);
+                return (
+                  <div
+                    key={step.id}
+                    className={`rounded-lg border p-3 text-xs ${
+                      status === "completed"
+                        ? "border-emerald-200 bg-emerald-50"
+                        : status === "active"
+                          ? "border-brand-700 bg-brand-50"
+                          : "border-slate-200 bg-slate-50"
+                    }`}
+                  >
+                    <p className="font-semibold text-slate-700">Paso {index + 1}</p>
+                    <p className="mt-1 text-slate-600">{step.label}</p>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="rounded-lg bg-lavender-100 p-3 text-sm text-slate-700">
+              <p className="font-semibold text-brand-700">Diagnóstico en tiempo real</p>
+              <p className="mt-1">Patrón: {getStrategicDiagnosis(brain).patron}</p>
+              <p>Gravedad: {getStrategicDiagnosis(brain).gravedad}</p>
+            </div>
+          </aside>
+
+          <section className="space-y-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-soft">
+            {currentQuestion ? (
+              <>
+                <p className="text-sm font-semibold uppercase tracking-wide text-brand-700">Pregunta actual</p>
+                <h2 className="text-2xl font-semibold text-slate-900">{currentQuestion.text}</h2>
+
+                <div className="flex gap-2">
+                  {[1, 2, 3, 4, 5].map((score) => (
+                    <button
+                      key={score}
+                      type="button"
+                      onClick={() => setSelectedScore(score)}
+                      className={`h-10 w-10 rounded-full border font-semibold ${
+                        selectedScore === score
+                          ? "border-brand-600 bg-brand-600 text-white"
+                          : "border-slate-300 bg-white text-slate-700"
+                      }`}
+                    >
+                      {score}
+                    </button>
+                  ))}
+                </div>
+
+                <textarea
+                  value={userNote}
+                  onChange={(event) => setUserNote(event.target.value)}
+                  placeholder="Describe contexto específico para evitar respuestas vagas"
+                  className="min-h-28 w-full rounded-lg border border-slate-300 p-3 text-sm text-slate-800"
+                />
+
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={submitCurrentAnswer}
+                    disabled={selectedScore === null}
+                    className="rounded-lg bg-brand-600 px-5 py-2 font-semibold text-white hover:bg-brand-700 disabled:cursor-not-allowed disabled:bg-slate-400"
+                  >
+                    Guardar y continuar
+                  </button>
+                  {builderMode && (
+                    <>
+                      <button type="button" onClick={skipStep} className="rounded-lg border border-brand-700 px-4 py-2 text-sm font-semibold text-brand-700">
+                        Saltar paso
+                      </button>
+                      <button type="button" onClick={resetDiagnostic} className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700">
+                        Reiniciar diagnóstico
+                      </button>
+                    </>
+                  )}
+                </div>
+              </>
+            ) : (
+              <>
+                <h2 className="text-2xl font-semibold text-slate-900">Diagnóstico listo</h2>
+                <p className="text-slate-700">
+                  {outputGate.allowed
+                    ? "Validación completada. Ya puedes generar tu resultado estratégico."
+                    : outputGate.reason ?? "Faltan datos para cerrar diagnóstico."}
+                </p>
+                <button
+                  type="button"
+                  onClick={finishDiagnostic}
+                  disabled={!outputGate.allowed}
+                  className="rounded-lg bg-brand-600 px-5 py-3 font-semibold text-white hover:bg-brand-700 disabled:cursor-not-allowed disabled:bg-slate-400"
+                >
+                  Ver diagnóstico final
+                </button>
+                {!outputGate.allowed && (
+                  <button
+                    type="button"
+                    onClick={resetDiagnostic}
+                    className="ml-2 rounded-lg border border-slate-300 px-4 py-3 text-sm font-semibold text-slate-700"
+                  >
+                    Reiniciar y volver a empezar
+                  </button>
+                )}
+                {builderMode && (
+                  <button type="button" onClick={resetDiagnostic} className="ml-2 rounded-lg border border-slate-300 px-4 py-3 text-sm font-semibold text-slate-700">
+                    Reiniciar diagnóstico
+                  </button>
+                )}
+              </>
+            )}
+
+            <div className="rounded-lg border border-brand-100 bg-brand-50 p-3 text-sm text-slate-700">
+              <p className="font-semibold text-brand-700">Feedback inmediato</p>
+              <p className="mt-1">{feedback}</p>
+            </div>
+
+            {message && !builderMode ? <p className="text-sm font-medium text-amber-700">{message}</p> : null}
+          </section>
+        </section>
       </Container>
     </main>
   );

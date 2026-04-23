@@ -1,6 +1,7 @@
 "use client";
 
 import { ReactNode, useMemo, useState } from "react";
+import Link from "next/link";
 import { Container } from "@/components/Container";
 import { diagnosticQuestions, getMentorMessage } from "@/lib/conversation-engine";
 import { Answers, FullReport, Lead } from "@/lib/biem-insight/types";
@@ -73,11 +74,17 @@ export default function BIEMInsightPage() {
             <p className="mt-4 text-lg text-slate-100">
               Strategic diagnostic to identify the stage and structural challenges of your idea, project or business.
             </p>
-            <button
-              onClick={() => setStep("capture")}
-              className="mt-8 rounded-lg bg-white px-6 py-3 font-semibold text-slate-900 transition hover:bg-slate-100"
+            <Link
+              href="/diagnostic"
+              className="mt-8 inline-flex rounded-lg bg-white px-6 py-3 font-semibold text-slate-900 transition hover:bg-slate-100"
             >
               Start Diagnostic
+            </Link>
+            <button
+              onClick={() => setStep("capture")}
+              className="ml-3 mt-8 rounded-lg border border-white/50 px-6 py-3 font-semibold text-white transition hover:bg-white/10"
+            >
+              BIEM Demo Flow
             </button>
           </section>
         )}
