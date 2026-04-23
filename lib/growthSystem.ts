@@ -57,6 +57,23 @@ export interface StrategicAnalysisResult {
   plan: StrategicPlan;
 }
 
+export type StrategicScenario =
+  | "SIN_VENTAS"
+  | "TRAFICO_SIN_CONVERSION"
+  | "VENTAS_INCONSISTENTES"
+  | "DEPENDENCIA_REFERIDOS"
+  | "MUCHA_AUDIENCIA_POCA_VENTA"
+  | "ESCALAR";
+
+export interface ScenarioInput {
+  ventas: number;
+  trafico: number;
+  conversion: number;
+  ventas_irregulares: boolean;
+  origen: string;
+  seguidores: number;
+}
+
 // ============================================
 // SECCIÓN 2: Funciones del motor estratégico
 // ============================================
@@ -67,6 +84,27 @@ function clamp(value: number, min: number, max: number): number {
 
 function addPoints(current: number, points: number): number {
   return clamp(current + points, 0, 15);
+}
+
+/**
+ * Detecta el escenario comercial actual para orientar la prioridad estratégica.
+ */
+export function detectarEscenario(input: ScenarioInput): StrategicScenario {
+  if (input.ventas === 0) return "SIN_VENTAS";
+
+  if (input.trafico > 1000 && input.conversion < 1) {
+    return "TRAFICO_SIN_CONVERSION";
+  }
+
+  if (input.ventas_irregulares) return "VENTAS_INCONSISTENTES";
+
+  if (input.origen === "referidos") return "DEPENDENCIA_REFERIDOS";
+
+  if (input.seguidores > 10000 && input.ventas < 10) {
+    return "MUCHA_AUDIENCIA_POCA_VENTA";
+  }
+
+  return "ESCALAR";
 }
 
 /**
@@ -331,15 +369,41 @@ export function runStrategicAnalysis(input: StrategicInput): StrategicAnalysisRe
 // ==================================================
 
 export type PlanType = "free" | "standard" | "pro";
+export type UserRole = "user" | "admin" | "builder";
 export type ActionTask = Task;
 export type DiagnosticResult = DiagnosticRecord;
 
 export type GrowthState = {
   plan: PlanType;
+  role: UserRole;
   diagnostics: DiagnosticResult[];
 };
 
+export type SessionStepStatus = "pending" | "completed";
+export type SessionStatus = "locked" | "active" | "completed";
+
+export type SessionStep = {
+  id: string;
+  title: string;
+  objective: string;
+  instructions: string[];
+  example: string;
+  warning: string;
+  feedback: string;
+  status: SessionStepStatus;
+};
+
+export type JourneySession = {
+  id: string;
+  title: string;
+  objective: string;
+  status: SessionStatus;
+  completionFeedback: string;
+  steps: SessionStep[];
+};
+
 const STORAGE_KEY = "acae_growth_system";
+const JOURNEY_KEY = "acae_growth_journey";
 const DELAY_DAYS = 7;
 
 const planLimits: Record<PlanType, number> = {
@@ -381,6 +445,7 @@ function createTasksFromActionPlan(actionPlan: ActionPlanBase): ActionTask[] {
 export function getDefaultGrowthState(): GrowthState {
   return {
     plan: "free",
+    role: "user",
     diagnostics: []
   };
 }
@@ -391,7 +456,12 @@ export function getGrowthState(): GrowthState {
   if (!raw) return getDefaultGrowthState();
 
   try {
-    return JSON.parse(raw) as GrowthState;
+    const parsed = JSON.parse(raw) as Partial<GrowthState>;
+    return {
+      plan: parsed.plan ?? "free",
+      role: parsed.role ?? "user",
+      diagnostics: parsed.diagnostics ?? []
+    };
   } catch {
     return getDefaultGrowthState();
   }
@@ -409,6 +479,17 @@ export function updatePlan(plan: PlanType) {
   return next;
 }
 
+export function updateRole(role: UserRole) {
+  const state = getGrowthState();
+  const next = { ...state, role };
+  saveGrowthState(next);
+  return next;
+}
+
+export function isBuilderMode(state: GrowthState) {
+  return state.role === "admin" || state.role === "builder";
+}
+
 export function getPlanLimit(plan: PlanType) {
   return planLimits[plan];
 }
@@ -422,6 +503,14 @@ export function getNextAvailableDate(state: GrowthState): Date | null {
 }
 
 export function canRunDiagnostic(state: GrowthState) {
+  if (isBuilderMode(state)) {
+    return {
+      allowed: true,
+      remaining: Number.POSITIVE_INFINITY,
+      nextDate: null
+    };
+  }
+
   const countLimit = state.diagnostics.length < planLimits[state.plan];
   const next = getNextAvailableDate(state);
   const delayReady = !next || new Date() >= next;
@@ -516,5 +605,232 @@ export function getProgressComparison(state: GrowthState) {
       autoridad: latest.autoridad - first.autoridad,
       escalabilidad: latest.escalabilidad - first.escalabilidad
     }
+  };
+}
+
+function createJourneyTemplate(diagnostic: DiagnosticResult): JourneySession[] {
+  const context = readTaskContext();
+  const baseSteps = diagnostic.plan.slice(0, 3);
+  const fallbackSteps = [
+    "Definir una prioridad estratégica semanal",
+    "Implementar rutina comercial con revisión diaria",
+    "Medir resultados y ajustar la ejecución"
+  ];
+  const steps = (baseSteps.length ? baseSteps : fallbackSteps).slice(0, 3);
+
+  const createSteps = (sessionId: string, sessionName: string) =>
+    steps.map((step, idx) => ({
+      id: `${sessionId}-step-${idx + 1}`,
+      title: step,
+      objective: `Completar "${step}" para consolidar la etapa ${idx + 1} del sistema comercial en un negocio de tipo ${context.tipo_negocio}.`,
+      instructions: contextualInstructions(context),
+      example: `${contextualExample(step, context)} (${sessionName})`,
+      warning: "Error común: ejecutar sin métricas de validación ni seguimiento semanal.",
+      feedback: `Buen avance: este paso fortalece la ${diagnostic.weakestDimension.toLowerCase()} y reduce fricción operativa.`,
+      status: "pending" as SessionStepStatus
+    }));
+
+  return [
+    {
+      id: "session-1",
+      title: "Etapa 1 · Alinear enfoque",
+      objective: "Concentrar al negocio en la prioridad crítica para evitar dispersión.",
+      status: "active",
+      completionFeedback: "Sesión completada: ya tienes claridad estratégica para ejecutar con enfoque.",
+      steps: createSteps("session-1", "Etapa 1")
+    },
+    {
+      id: "session-2",
+      title: "Etapa 2 · Ejecutar sistema",
+      objective: "Convertir la estrategia en un sistema de ejecución repetible.",
+      status: "locked",
+      completionFeedback: "Sesión completada: tu ejecución ahora es más consistente y medible.",
+      steps: createSteps("session-2", "Etapa 2")
+    },
+    {
+      id: "session-3",
+      title: "Etapa 3 · Escalar controladamente",
+      objective: "Escalar resultados sin perder margen, foco ni control operativo.",
+      status: "locked",
+      completionFeedback: "Sesión completada: estás listo para escalar con disciplina de crecimiento.",
+      steps: createSteps("session-3", "Etapa 3")
+    }
+  ];
+}
+
+type JourneyStore = Record<string, JourneySession[]>;
+
+type TaskContext = {
+  tipo_negocio: "servicios" | "productos" | "mixto";
+  nivel: "desordenado" | "transicion" | "estructurado";
+  problema: string;
+};
+
+function readTaskContext(): TaskContext {
+  if (typeof window === "undefined") {
+    return { tipo_negocio: "servicios", nivel: "transicion", problema: "conversion" };
+  }
+
+  const raw = localStorage.getItem("acae_dynamic_context");
+  if (!raw) return { tipo_negocio: "servicios", nivel: "transicion", problema: "conversion" };
+
+  try {
+    const parsed = JSON.parse(raw) as Partial<TaskContext> & { realtime?: { mainProblem?: string } };
+    return {
+      tipo_negocio: parsed.tipo_negocio ?? "servicios",
+      nivel: parsed.nivel ?? "transicion",
+      problema: parsed.problema ?? parsed.realtime?.mainProblem ?? "conversion"
+    };
+  } catch {
+    return { tipo_negocio: "servicios", nivel: "transicion", problema: "conversion" };
+  }
+}
+
+function contextualExample(baseStep: string, context: TaskContext): string {
+  if (context.tipo_negocio === "servicios") {
+    return `Ejemplo servicios: para "${baseStep}", usa una propuesta por llamada de diagnóstico + cierre en 24h.`;
+  }
+
+  if (context.tipo_negocio === "productos") {
+    return `Ejemplo productos: para "${baseStep}", crea ficha de producto + oferta con prueba social + checkout claro.`;
+  }
+
+  return `Ejemplo mixto: para "${baseStep}", combina una demo de servicio con oferta empaquetada de producto base.`;
+}
+
+function contextualInstructions(context: TaskContext): string[] {
+  if (context.problema.toLowerCase().includes("convers")) {
+    return context.nivel === "desordenado"
+      ? [
+          "Define un guion comercial de 3 preguntas y 1 cierre.",
+          "Agenda 3 conversaciones de venta reales esta semana.",
+          "Registra objeciones y respuesta usada en una plantilla simple."
+        ]
+      : [
+          "Mapea embudo comercial completo por etapa.",
+          "Asigna meta semanal de cierre por canal.",
+          "Optimiza propuesta y seguimiento según tasa de cierre real."
+        ];
+  }
+
+  if (context.nivel === "desordenado") {
+    return [
+      "Ejecuta una sola prioridad diaria por 5 días.",
+      "Define responsable único por tarea.",
+      "Revisa resultado al cierre del día y ajusta."
+    ];
+  }
+
+  return [
+    "Define responsable y fecha límite del paso.",
+    "Ejecuta una versión mínima en menos de 48 horas.",
+    "Mide resultado y documenta ajuste para repetir."
+  ];
+}
+
+function readJourneyStore(): JourneyStore {
+  if (typeof window === "undefined") return {};
+  const raw = localStorage.getItem(JOURNEY_KEY);
+  if (!raw) return {};
+  try {
+    return JSON.parse(raw) as JourneyStore;
+  } catch {
+    return {};
+  }
+}
+
+function saveJourneyStore(store: JourneyStore) {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(JOURNEY_KEY, JSON.stringify(store));
+}
+
+export function getJourneySessions(diagnostic: DiagnosticResult): JourneySession[] {
+  const store = readJourneyStore();
+  const existing = store[diagnostic.id];
+  if (existing?.length) {
+    const normalized = existing.map((session) => ({
+      ...session,
+      steps: session.steps.map((step) => ({
+        ...step,
+        objective: step.objective ?? `Completar "${step.title}" con enfoque práctico.`,
+        instructions: step.instructions ?? contextualInstructions(readTaskContext()),
+        example: step.example ?? contextualExample(step.title, readTaskContext()),
+        warning: step.warning ?? "Error común: ejecutar sin validar resultado."
+      }))
+    }));
+    saveJourneyStore({ ...store, [diagnostic.id]: normalized });
+    return normalized;
+  }
+
+  const initial = createJourneyTemplate(diagnostic);
+  const nextStore: JourneyStore = { ...store, [diagnostic.id]: initial };
+  saveJourneyStore(nextStore);
+  return initial;
+}
+
+function allStepsCompleted(session: JourneySession): boolean {
+  return session.steps.every((step) => step.status === "completed");
+}
+
+export function completeJourneyStep(
+  diagnosticId: string,
+  sessionId: string,
+  stepId: string
+): { sessions: JourneySession[]; stepFeedback: string; sessionFeedback: string | null } {
+  const store = readJourneyStore();
+  const sessions = store[diagnosticId] ?? [];
+  let stepFeedback = "Paso actualizado.";
+  let sessionFeedback: string | null = null;
+
+  const updated = sessions.map((session) => {
+    if (session.id !== sessionId) return session;
+    if (session.status === "locked") return session;
+
+    const steps = session.steps.map((step) => {
+      if (step.id !== stepId) return step;
+      stepFeedback = step.feedback;
+      return { ...step, status: "completed" as SessionStepStatus };
+    });
+
+    const nextSession = { ...session, steps };
+    if (allStepsCompleted(nextSession)) {
+      sessionFeedback = nextSession.completionFeedback;
+      return { ...nextSession, status: "completed" as SessionStatus };
+    }
+    return nextSession;
+  });
+
+  const unlocked = updated.map((session, idx) => {
+    if (session.status !== "locked") return session;
+    const prev = updated[idx - 1];
+    if (idx === 0 || prev?.status === "completed") {
+      return { ...session, status: "active" as SessionStatus };
+    }
+    return session;
+  });
+
+  const normalized = unlocked.map((session, idx) => {
+    if (session.status === "active") {
+      const hasEarlierActive = unlocked.slice(0, idx).some((item) => item.status === "active");
+      if (hasEarlierActive) return { ...session, status: "locked" as SessionStatus };
+    }
+    return session;
+  });
+
+  saveJourneyStore({ ...store, [diagnosticId]: normalized });
+  return { sessions: normalized, stepFeedback, sessionFeedback };
+}
+
+export function getJourneyProgress(sessions: JourneySession[]) {
+  const totalSteps = sessions.reduce((acc, session) => acc + session.steps.length, 0);
+  const completedSteps = sessions.reduce(
+    (acc, session) => acc + session.steps.filter((step) => step.status === "completed").length,
+    0
+  );
+
+  return {
+    totalSteps,
+    completedSteps,
+    percent: totalSteps ? Math.round((completedSteps / totalSteps) * 100) : 0
   };
 }
