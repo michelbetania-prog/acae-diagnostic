@@ -73,7 +73,24 @@ pero explica cuándo aplicar cada uno y adáptalo al nivel del negocio sin sobre
 export async function POST(request: NextRequest): Promise<NextResponse> {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
-    return NextResponse.json({ error: "Missing OPENAI_API_KEY" }, { status: 500 });
+    return NextResponse.json({
+      diagnostico: "Modo seguro activado: no hay API key configurada, se muestra diagnóstico base.",
+      problemas_criticos: ["Configuración incompleta de IA (OPENAI_API_KEY ausente)."],
+      oportunidades: ["Puedes seguir usando el flujo diagnóstico con reglas locales mientras habilitas la API."],
+      acciones: [
+        {
+          accion: "Configurar OPENAI_API_KEY en entorno",
+          por_que: "Sin credencial, el análisis con GPT no se ejecuta y se pierde personalización avanzada.",
+          como_hacerlo: [
+            "Agrega OPENAI_API_KEY en tu archivo .env.local",
+            "Reinicia el servidor de desarrollo",
+            "Vuelve a ejecutar un diagnóstico para validar la integración"
+          ],
+          resultado_esperado: "La sección IA en resultados responde con diagnóstico completo y acciones personalizadas."
+        }
+      ],
+      estructuras_internas: []
+    } satisfies AiDiagnosticResponse);
   }
 
   const body = (await request.json()) as {
