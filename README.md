@@ -46,6 +46,18 @@ npm run dev
 
 Abre `http://localhost:3000`. Si no configuras Supabase, la app usa datos demo para el marketplace y tiendas.
 
+
+## Identidad y UX
+
+El MVP usa una dirección visual tipo SaaS premium: azul petróleo, coral, crema y blanco; navegación minimalista; cards con sombras suaves; dashboard con KPIs; marketplace orientado a comercios con operación propia, no a delivery.
+
+Componentes reutilizables incluidos:
+
+- `components/ui/Icon.tsx`: iconografía SVG profesional.
+- `components/ui/Badge.tsx`: badges de estado y categorías.
+- `components/ui/Shell.tsx`: layout con sidebar para paneles internos.
+- Utilidades Tailwind en `styles/globals.css`: botones, inputs, cards, skeletons y shell de secciones.
+
 ## Funcionalidades incluidas en el código base
 
 - Marketplace con filtros por zona, categoría y comercios abiertos.
