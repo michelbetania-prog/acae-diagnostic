@@ -3,14 +3,14 @@ import "@/styles/globals.css";
 import { Navbar } from "@/components/Navbar";
 
 export const metadata: Metadata = {
-  title: "ACAE Diagnostic",
-  description: "Diagnóstico estratégico de negocio con el método ACAE"
+  title: "Sazón Local RD",
+  description: "Marketplace asequible para comercios gastronómicos pequeños en República Dominicana"
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="es">
-      <body className="bg-white text-slate-900 antialiased">
+      <body className="bg-slate-50 text-slate-950 antialiased">
         <Navbar />
         {children}
       </body>

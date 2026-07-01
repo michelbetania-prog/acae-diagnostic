@@ -1,31 +1,4 @@
 import Link from "next/link";
-import { Container } from "@/components/Container";
-
-const links = [
-  { label: "Dashboard", href: "/dashboard" },
-  { label: "Diagnóstico", href: "/diagnostic" },
-  { label: "Plan de Acción", href: "/dashboard/action-plan" },
-  { label: "Tareas", href: "/dashboard/tasks" },
-  { label: "Progreso", href: "/dashboard/progress" },
-  { label: "Sesiones", href: "/dashboard/sessions" },
-  { label: "Cuenta", href: "/account" }
-];
-
 export function Navbar() {
-  return (
-    <header className="sticky top-0 z-10 border-b border-slate-200 bg-white/90 backdrop-blur">
-      <Container className="flex h-16 items-center justify-between gap-4">
-        <Link href="/" className="text-lg font-semibold text-slate-900">
-          ACAE Diagnostic
-        </Link>
-        <nav className="hidden items-center gap-4 lg:flex">
-          {links.map((link) => (
-            <Link key={link.label} href={link.href} className="text-sm font-medium text-slate-700 hover:text-slate-900">
-              {link.label}
-            </Link>
-          ))}
-        </nav>
-      </Container>
-    </header>
-  );
+  return <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/90 backdrop-blur"><nav className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4"><Link href="/" className="text-xl font-black text-emerald-700">Sazón Local RD</Link><div className="flex items-center gap-2 text-sm font-semibold"><Link className="rounded-xl px-3 py-2 hover:bg-slate-100" href="/dashboard">Panel comercio</Link><Link className="rounded-xl px-3 py-2 hover:bg-slate-100" href="/admin">Admin</Link><Link className="btn-primary !px-4 !py-2" href="/register">Registrar comercio</Link></div></nav></header>;
 }
