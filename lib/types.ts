@@ -1,54 +1,43 @@
-import { ACAEScore } from "@/lib/calculateACAE";
-import { BusinessDimension } from "@/lib/acaeMatrix";
+export type Role = "admin" | "comercio";
 
-export type TaskStatus = "pending" | "completed";
-
-export type Task = {
+export type Business = {
   id: string;
-  title: string;
-  description: string;
-  dimension: string;
-  status: TaskStatus;
-  due_date: string;
+  slug: string;
+  name: string;
+  logo_url: string | null;
+  cover_url?: string | null;
+  description: string | null;
+  zone: string;
+  address?: string | null;
+  whatsapp: string;
+  is_open: boolean;
+  is_active: boolean;
+  category: string;
+  hours: string | null;
+  rating?: number;
+  review_count?: number;
+  estimated_time?: string;
+  delivery_available?: boolean;
+  pickup_available?: boolean;
+  featured?: boolean;
 };
 
-export type DiagnosticDimensionScores = {
-  attractionScore: number;
-  conversionScore: number;
-  automationScore: number;
-  scaleScore: number;
-};
-
-export type BusinessStage = "IDEA" | "VALIDATION" | "GROWTH" | "SYSTEMIZATION" | "SCALE";
-
-export type ActionPlanTask = {
-  title: string;
-  dimension: BusinessDimension;
-};
-
-export type ActionPlanBase = {
-  priorities: BusinessDimension[];
-  tasks: ActionPlanTask[];
-  strategicFocus: string;
-  businessStage: BusinessStage;
-};
-
-export type ActionPlanAdvanced = ActionPlanBase & {
-  waves: Array<{ name: string; tasks: ActionPlanTask[] }>;
-  criticalPath: string[];
-  warnings: string[];
-  estimatedWeeks: number;
-};
-
-export type DiagnosticRecord = {
+export type Product = {
   id: string;
-  createdAt: string;
-  answers: Record<number, number>;
-  score: ACAEScore;
-  weakestDimension: string;
-  plan: string[];
-  tasks: Task[];
-  businessStage: BusinessStage;
-  priorities: BusinessDimension[];
-  strategicFocus: string;
+  business_id: string;
+  category_id: string | null;
+  name: string;
+  description: string | null;
+  price: number;
+  image_url: string | null;
+  is_active: boolean;
+  is_featured?: boolean;
+  category?: { name: string } | null;
+};
+
+export type Category = {
+  id: string;
+  business_id: string | null;
+  name: string;
+  slug: string;
 };

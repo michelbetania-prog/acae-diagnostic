@@ -1,204 +1,177 @@
-"use client";
+import Link from "next/link";
+import { Badge } from "@/components/ui/Badge";
+import { Icon } from "@/components/ui/Icon";
+import { getCategories, getPublicBusinesses } from "@/lib/data/queries";
 
-import { ReactNode, useMemo, useState } from "react";
-import { Container } from "@/components/Container";
-import { diagnosticQuestions, getMentorMessage } from "@/lib/conversation-engine";
-import { Answers, FullReport, Lead } from "@/lib/biem-insight/types";
+const benefits = [
+  { title: "Tu tienda online", text: "Una presencia digital propia para vender sin depender de una app de delivery.", icon: "store" as const },
+  { title: "Pedidos por WhatsApp", text: "Tus clientes compran y tú cierras la venta en el canal que ya usas.", icon: "message" as const },
+  { title: "Sin comisiones abusivas", text: "Más margen para el comercio y una relación directa con cada cliente.", icon: "chart" as const },
+  { title: "Catálogo digital", text: "Productos, categorías, precios, fotos y disponibilidad siempre actualizados.", icon: "catalog" as const },
+  { title: "Control de horarios", text: "Abre, cierra y comunica tiempos reales sin fricción operativa.", icon: "clock" as const },
+  { title: "QR para compartir", text: "Convierte mesas, empaques e historias de Instagram en puntos de venta.", icon: "qr" as const }
+];
 
-type Step =
-  | "landing"
-  | "capture"
-  | "conversation"
-  | "analyzing"
-  | "report-1"
-  | "report-2"
-  | "report-3"
-  | "report-4"
-  | "email-offer"
-  | "booking";
+const palettes = [
+  "Azul petróleo · Coral · Blanco",
+  "Oliva elegante · Crema · Gris oscuro",
+  "Azul profundo · Naranja cálido · Blanco"
+];
 
-export default function BIEMInsightPage() {
-  const [step, setStep] = useState<Step>("landing");
-  const [lead, setLead] = useState<Lead>({ name: "", email: "", businessType: "" });
-  const [answers, setAnswers] = useState<Answers>({});
-  const [index, setIndex] = useState(0);
-  const [report, setReport] = useState<FullReport | null>(null);
-  const [sending, setSending] = useState(false);
-
-  const question = diagnosticQuestions[index];
-  const completion = Math.round((Object.keys(answers).length / diagnosticQuestions.length) * 100);
-  const intro = useMemo(() => getMentorMessage(index % 3), [index]);
-
-  const startEvaluation = async () => {
-    if (!lead.name || !lead.email) return;
-    await fetch("/api/insight/lead", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(lead)
-    });
-    setStep("conversation");
-  };
-
-  const answerQuestion = (optionId: string) => {
-    const nextAnswers = { ...answers, [question.id]: optionId };
-    setAnswers(nextAnswers);
-
-    if (index < diagnosticQuestions.length - 1) {
-      setIndex(index + 1);
-      return;
-    }
-
-    setStep("analyzing");
-    setSending(true);
-    setTimeout(async () => {
-      const response = await fetch("/api/insight/diagnose", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ lead, answers: nextAnswers })
-      });
-      const data = (await response.json()) as FullReport;
-      setReport(data);
-      setSending(false);
-      setStep("report-1");
-    }, 3200);
-  };
+export default async function Marketplace({ searchParams }: { searchParams: { zone?: string; category?: string; open?: string } }) {
+  const [businesses, categories] = await Promise.all([getPublicBusinesses(searchParams), getCategories()]);
+  const zones = Array.from(new Set(businesses.map((business) => business.zone)));
 
   return (
-    <main className="py-8 md:py-14">
-      <Container className="max-w-3xl space-y-6">
-        {step === "landing" && (
-          <section className="rounded-2xl bg-gradient-to-br from-slate-900 to-brand-700 p-10 text-white shadow-soft">
-            <p className="mb-3 inline-block rounded-full bg-white/20 px-4 py-1 text-sm">BIEM Strategic System</p>
-            <h1 className="text-4xl font-bold">BIEM Insight</h1>
-            <p className="mt-4 text-lg text-slate-100">
-              Strategic diagnostic to identify the stage and structural challenges of your idea, project or business.
+    <main className="overflow-hidden">
+      <section className="relative bg-[#fbfaf7]">
+        <div className="absolute inset-x-0 top-0 h-[680px] bg-[radial-gradient(circle_at_top_left,rgba(255,107,74,0.18),transparent_32%),radial-gradient(circle_at_top_right,rgba(15,76,92,0.16),transparent_34%)]" />
+        <div className="section-shell relative grid items-center gap-14 lg:grid-cols-[1.05fr_0.95fr]">
+          <div>
+            <Badge tone="brand">Commerce OS para negocios gastronómicos</Badge>
+            <h1 className="mt-8 max-w-4xl text-5xl font-black tracking-[-0.06em] text-ink md:text-7xl">
+              Tus clientes. Tus pedidos. Tus ganancias.
+            </h1>
+            <p className="mt-7 max-w-2xl text-xl leading-9 text-slate-600">
+              Una plataforma para que restaurantes y emprendedores reciban pedidos directamente, controlen su catálogo y crezcan sin depender de plataformas con altas comisiones.
             </p>
-            <button
-              onClick={() => setStep("capture")}
-              className="mt-8 rounded-lg bg-white px-6 py-3 font-semibold text-slate-900 transition hover:bg-slate-100"
-            >
-              Start Diagnostic
-            </button>
-          </section>
-        )}
-
-        {step === "capture" && (
-          <section className="rounded-2xl border border-slate-200 bg-white p-8 shadow-soft">
-            <h2 className="text-2xl font-semibold text-slate-900">Before we begin</h2>
-            <p className="mt-2 text-slate-600">Your strategic report will be generated after completing the diagnostic.</p>
-            <div className="mt-6 space-y-4">
-              <input className="w-full rounded-lg border border-slate-300 px-4 py-3" placeholder="Name" value={lead.name} onChange={(e) => setLead({ ...lead, name: e.target.value })} />
-              <input className="w-full rounded-lg border border-slate-300 px-4 py-3" placeholder="Email" value={lead.email} onChange={(e) => setLead({ ...lead, email: e.target.value })} />
-              <input className="w-full rounded-lg border border-slate-300 px-4 py-3" placeholder="Business type (optional)" value={lead.businessType} onChange={(e) => setLead({ ...lead, businessType: e.target.value })} />
+            <div className="mt-9 flex flex-col gap-3 sm:flex-row">
+              <Link href="/register" className="btn-primary">Comenzar gratis</Link>
+              <Link href="#comercios" className="btn-secondary">Ver comercios</Link>
             </div>
-            <button
-              onClick={startEvaluation}
-              disabled={!lead.name || !lead.email}
-              className="mt-6 rounded-lg bg-brand-600 px-6 py-3 font-semibold text-white enabled:hover:bg-brand-700 disabled:cursor-not-allowed disabled:bg-slate-400"
-            >
-              Start Evaluation
-            </button>
-          </section>
-        )}
-
-        {step === "conversation" && (
-          <section className="rounded-2xl border border-slate-200 bg-white p-8 shadow-soft">
-            <p className="text-sm font-medium text-brand-700">{intro}</p>
-            <p className="mt-2 text-slate-600">{question.mentorIntro}</p>
-            <h2 className="mt-3 text-2xl font-semibold text-slate-900">{question.prompt}</h2>
-            <p className="mt-2 text-sm text-slate-500">Progress: {completion}%</p>
-            <div className="mt-6 space-y-3">
-              {question.options.map((option) => (
-                <button
-                  key={option.id}
-                  onClick={() => answerQuestion(option.id)}
-                  className="w-full rounded-lg border border-slate-300 px-4 py-3 text-left transition hover:border-brand-500 hover:bg-brand-50"
-                >
-                  {option.label}
-                </button>
-              ))}
+            <div className="mt-10 grid max-w-xl grid-cols-3 gap-4 text-sm">
+              <div><strong className="block text-2xl text-ink">0%</strong><span className="text-slate-500">comisión por pedido</span></div>
+              <div><strong className="block text-2xl text-ink">24/7</strong><span className="text-slate-500">catálogo activo</span></div>
+              <div><strong className="block text-2xl text-ink">QR</strong><span className="text-slate-500">listo para vender</span></div>
             </div>
-          </section>
-        )}
+          </div>
 
-        {step === "analyzing" && (
-          <section className="rounded-2xl border border-slate-200 bg-white p-10 text-center shadow-soft">
-            <h2 className="text-2xl font-semibold text-slate-900">Analyzing your business structure...</h2>
-            <p className="mt-3 text-slate-600">Our strategic engine is organizing your diagnostic signals.</p>
-            <div className="mx-auto mt-5 h-2 w-56 overflow-hidden rounded-full bg-slate-200">
-              <div className="h-full w-2/3 animate-pulse rounded-full bg-brand-600" />
+          <div className="relative">
+            <div className="absolute -left-8 top-10 h-32 w-32 rounded-full bg-coral/20 blur-3xl" />
+            <div className="card-premium relative p-4 shadow-premium">
+              <div className="rounded-[1.4rem] bg-ink p-5 text-white">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-[0.22em] text-white/50">Dashboard</p>
+                    <h3 className="mt-2 text-2xl font-black">Atelier Criollo</h3>
+                  </div>
+                  <Badge tone="success">Abierto</Badge>
+                </div>
+                <div className="mt-6 grid grid-cols-3 gap-3">
+                  {["Pedidos", "Ingresos", "Productos"].map((item, index) => (
+                    <div key={item} className="rounded-2xl bg-white/10 p-4">
+                      <p className="text-xs text-white/55">{item}</p>
+                      <p className="mt-2 text-xl font-black">{[18, "RD$ 12.4k", 42][index]}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div className="grid gap-4 p-4 md:grid-cols-2">
+                <div className="rounded-3xl border border-slate-100 p-5">
+                  <Icon name="catalog" className="h-6 w-6 text-coral" />
+                  <h4 className="mt-4 font-black text-ink">Catálogo inteligente</h4>
+                  <div className="mt-4 space-y-2">
+                    <div className="skeleton h-3 w-full" />
+                    <div className="skeleton h-3 w-2/3" />
+                  </div>
+                </div>
+                <div className="rounded-3xl border border-slate-100 p-5">
+                  <Icon name="message" className="h-6 w-6 text-petrol" />
+                  <h4 className="mt-4 font-black text-ink">Pedidos directos</h4>
+                  <div className="mt-4 rounded-2xl bg-mist p-3 text-sm font-bold text-petrol">Nuevo pedido listo para confirmar</div>
+                </div>
+              </div>
             </div>
-            {sending ? <p className="mt-3 text-sm text-slate-500">Please wait a few seconds.</p> : null}
-          </section>
-        )}
+          </div>
+        </div>
+      </section>
 
-        {step === "report-1" && report && (
-          <ReportCard title="Primary Result" onNext={() => setStep("report-2")}>
-            <p className="text-sm font-semibold text-brand-700">Stage detected</p>
-            <h2 className="mt-1 text-3xl font-bold text-slate-900">{report.stage.replaceAll("_", " ")}</h2>
-            <p className="mt-4 text-slate-700">From what I see in your responses, your current structure has potential, but key strategic elements must be reinforced to unlock sustainable growth.</p>
-            <p className="mt-3 text-slate-600">Potential level: <strong>{report.potential_level}</strong></p>
-          </ReportCard>
-        )}
+      <section id="beneficios" className="section-shell">
+        <div className="max-w-2xl">
+          <Badge tone="neutral">Diseñado para vender más</Badge>
+          <h2 className="mt-5 text-4xl font-black tracking-tight text-ink md:text-5xl">Todo lo que un comercio pequeño necesita para operar como una marca digital.</h2>
+        </div>
+        <div className="mt-10 grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+          {benefits.map((benefit) => (
+            <article key={benefit.title} className="card-premium group p-6 transition duration-300 hover:-translate-y-1 hover:shadow-premium">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-mist text-petrol transition group-hover:bg-ink group-hover:text-white">
+                <Icon name={benefit.icon} className="h-6 w-6" />
+              </div>
+              <h3 className="mt-6 text-xl font-black text-ink">{benefit.title}</h3>
+              <p className="mt-3 leading-7 text-slate-600">{benefit.text}</p>
+            </article>
+          ))}
+        </div>
+      </section>
 
-        {step === "report-2" && report && (
-          <ReportCard title="Strengths" onNext={() => setStep("report-3")}>
-            <p className="text-slate-700">You already have meaningful foundations:</p>
-            <ul className="mt-4 list-disc space-y-2 pl-5 text-slate-700">
-              {report.strengths.map((strength) => <li key={strength}>{strength}</li>)}
-            </ul>
-          </ReportCard>
-        )}
+      <section className="bg-ink py-16 text-white md:py-24">
+        <div className="mx-auto grid max-w-7xl gap-10 px-4 lg:grid-cols-[0.8fr_1.2fr] lg:items-center">
+          <div>
+            <p className="text-sm font-bold uppercase tracking-[0.25em] text-coral">Identidad visual</p>
+            <h2 className="mt-4 text-4xl font-black tracking-tight md:text-5xl">Premium, local y preparado para escalar.</h2>
+          </div>
+          <div className="grid gap-4 md:grid-cols-3">
+            {palettes.map((palette) => (
+              <div key={palette} className="rounded-3xl border border-white/10 bg-white/5 p-5 text-sm font-bold text-white/80">{palette}</div>
+            ))}
+          </div>
+        </div>
+      </section>
 
-        {step === "report-3" && report && (
-          <ReportCard title="Structural Challenges" onNext={() => setStep("report-4")}>
-            <p className="text-slate-700">The main structural issues to address now are:</p>
-            <ul className="mt-4 list-disc space-y-2 pl-5 text-slate-700">
-              {report.challenges.map((challenge) => <li key={challenge}>{challenge}</li>)}
-            </ul>
-          </ReportCard>
-        )}
+      <section id="comercios" className="section-shell">
+        <div className="mb-8 flex flex-col justify-between gap-6 lg:flex-row lg:items-end">
+          <div>
+            <Badge tone="brand">Marketplace</Badge>
+            <h2 className="mt-4 text-4xl font-black tracking-tight text-ink md:text-5xl">Comercios con operación propia.</h2>
+            <p className="mt-4 max-w-2xl text-lg text-slate-600">Explora negocios locales que controlan su menú, horarios, entrega y relación con el cliente.</p>
+          </div>
+          <form className="grid gap-3 rounded-[1.5rem] border border-slate-200 bg-white p-3 shadow-sm sm:grid-cols-4">
+            <select name="zone" className="input" defaultValue={searchParams.zone ?? ""}>
+              <option value="">Todas las zonas</option>
+              {zones.map((zone) => <option key={zone}>{zone}</option>)}
+            </select>
+            <select name="category" className="input" defaultValue={searchParams.category ?? ""}>
+              <option value="">Categoría</option>
+              {categories.map((category) => <option key={category.id} value={category.name}>{category.name}</option>)}
+            </select>
+            <select name="open" className="input" defaultValue={searchParams.open ?? ""}>
+              <option value="">Estado</option>
+              <option value="true">Abiertos</option>
+            </select>
+            <button className="btn-primary">Filtrar</button>
+          </form>
+        </div>
 
-        {step === "report-4" && report && (
-          <ReportCard title="Strategic Focus" onNext={() => setStep("email-offer")}>
-            <p className="text-slate-700">{report.recommendation}</p>
-          </ReportCard>
-        )}
-
-        {step === "email-offer" && (
-          <section className="rounded-2xl border border-slate-200 bg-white p-8 shadow-soft">
-            <h2 className="text-2xl font-semibold text-slate-900">Would you like to receive the full report in your email?</h2>
-            <div className="mt-6 flex flex-wrap gap-3">
-              <button onClick={() => setStep("booking")} className="rounded-lg bg-brand-600 px-6 py-3 font-semibold text-white hover:bg-brand-700">Yes, send it</button>
-              <button onClick={() => setStep("booking")} className="rounded-lg border border-slate-300 px-6 py-3 font-semibold text-slate-700 hover:bg-slate-50">No thanks</button>
-            </div>
-          </section>
-        )}
-
-        {step === "booking" && (
-          <section className="rounded-2xl border border-slate-200 bg-white p-8 shadow-soft">
-            <h2 className="text-3xl font-bold text-slate-900">Strategic Session with BIEM</h2>
-            <p className="mt-3 text-slate-700">If you would like to go deeper into your case, you can schedule a free strategic session with Bethania from BIEM.</p>
-            <p className="mt-4 text-slate-700">In this session we review:</p>
-            <ul className="mt-3 list-disc space-y-2 pl-5 text-slate-700">
-              <li>your diagnostic results</li>
-              <li>structural challenges</li>
-              <li>strategic direction for your business</li>
-            </ul>
-            <a href="https://cal.com" target="_blank" className="mt-6 inline-flex rounded-lg bg-brand-600 px-6 py-3 font-semibold text-white hover:bg-brand-700" rel="noreferrer">View available dates</a>
-          </section>
-        )}
-      </Container>
+        <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+          {businesses.map((business) => (
+            <article key={business.id} className="card-premium group overflow-hidden transition duration-300 hover:-translate-y-1 hover:shadow-premium">
+              <div className="h-36 bg-[linear-gradient(135deg,#e8f5f2,#fff2ed)] p-5">
+                <div className="flex h-20 w-20 items-center justify-center rounded-3xl bg-white text-ink shadow-lg shadow-slate-900/10">
+                  <Icon name="store" className="h-9 w-9" />
+                </div>
+              </div>
+              <div className="p-6">
+                <div className="flex items-center justify-between gap-3">
+                  <Badge tone={business.is_open ? "success" : "neutral"}>{business.is_open ? "Abierto" : "Cerrado"}</Badge>
+                  <span className="flex items-center gap-1 text-sm font-bold text-slate-500"><Icon name="star" className="h-4 w-4 text-coral" /> {business.rating?.toFixed(1)} ({business.review_count})</span>
+                </div>
+                <h3 className="mt-4 text-2xl font-black text-ink">{business.name}</h3>
+                <p className="mt-2 line-clamp-2 min-h-14 text-sm leading-7 text-slate-600">{business.description}</p>
+                <div className="mt-5 grid gap-3 text-sm font-bold text-slate-600">
+                  <span className="flex items-center gap-2"><Icon name="catalog" className="h-4 w-4 text-petrol" /> {business.category}</span>
+                  <span className="flex items-center gap-2"><Icon name="location" className="h-4 w-4 text-petrol" /> {business.zone}</span>
+                  <span className="flex items-center gap-2"><Icon name="clock" className="h-4 w-4 text-petrol" /> {business.estimated_time}</span>
+                </div>
+                <div className="mt-5 flex flex-wrap gap-2">
+                  {business.delivery_available && <Badge tone="neutral">Entrega propia</Badge>}
+                  {business.pickup_available && <Badge tone="neutral">Retiro disponible</Badge>}
+                </div>
+                <Link href={`/tienda/${business.slug}`} className="btn-secondary mt-6 w-full group-hover:border-ink">Ver menú</Link>
+              </div>
+            </article>
+          ))}
+        </div>
+      </section>
     </main>
-  );
-}
-
-function ReportCard({ title, children, onNext }: { title: string; children: ReactNode; onNext: () => void }) {
-  return (
-    <section className="rounded-2xl border border-slate-200 bg-white p-8 shadow-soft">
-      <h2 className="text-2xl font-semibold text-slate-900">{title}</h2>
-      <div className="mt-4">{children}</div>
-      <button onClick={onNext} className="mt-7 rounded-lg bg-brand-600 px-6 py-3 font-semibold text-white hover:bg-brand-700">Continue</button>
-    </section>
   );
 }
